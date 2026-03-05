@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register feedback</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { display: flex; gap: 40px; flex-wrap: wrap; }
+
+    .topbar { display:flex; justify-content:flex-start; align-items:center; gap:12px; margin-bottom: 10px; flex-wrap:wrap; }
+    .topbar a { text-decoration:none; border:1px solid #ccc; padding:8px 10px; border-radius:6px; color:black; }
+    .topbar a:hover { background:#f6f6f6; }
+    .pill { display:inline-block; padding:2px 8px; border:1px solid #ccc; border-radius:999px; font-size:0.85em; margin-left: 10px; }
+
+    .section { flex: 1 1 360px; max-width: 760px; }
+    h2 { margin-top: 0; }
+
+    label { display:block; margin: 8px 0 4px; font-size: 0.92em; }
+    input, select, textarea { width:100%; padding:6px; box-sizing:border-box; }
+    textarea { font-family: Consolas, monospace; font-size: 0.92rem; min-height: 90px; }
+
+    .hint { background:#f0f8ff; border:1px solid #ccc; padding:10px; margin: 8px 0 14px; }
+    .small { font-size: 0.9em; color:#333; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div { flex:1 1 180px; }
+
+    .grid { display:grid; gap: 8px; }
+    .grid.cyl { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+
+    .cell {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px;
+      background: #fff;
+    }
+    .cell h4 { margin: 0 0 8px; font-size: 0.95em; }
+
+    .btnbar { width: 100%; display:flex; gap: 10px; justify-content:center; margin-top: 12px; }
+    button {
+      padding: 10px 18px;
+      background-color: #A9D18E;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button.secondary { background:#eee; border:1px solid #ccc; }
+    button.danger { background:#f44336; color:#fff; border:none; }
+
+    .subhead { margin: 10px 0 6px; font-weight: 700; }
+
+    .form-row {
+    display: flex;
+    gap: 40px;
+    width: 100%;
+    }
+
+    .form-row .section {
+    flex: 1 1 50%;
+    max-width: none;
+    min-width: 0;
+    }
+
+    .grid {
+    min-width: 0;
+    }
+
+    #feedbackTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    #feedbackTable th,
+    #feedbackTable td {
+      border: 1px solid #ddd;
+      padding: 4px 6px;
+      text-align: left;
+    }
+
+    #feedbackTable th {
+      background: #f4f4f4;
+      font-weight: 600;
+    }
+
+    #feedbackTable button {
+      padding: 3px 8px;
+      font-size: 0.8rem;
+    }
+
+    #feedbackTable tbody tr:hover {
+      background: #f9f9f9;
+    }
+
+
+    .section-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0 18px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+      align-items: center;
+    }
+    .togglebtn {
+      border: 1px solid #bbb;
+      background: #fff;
+      padding: 8px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .togglebtn.active {
+      border-color: #111;
+      font-weight: 700;
+    }
+    .togglebtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .muted {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+  
+    .rows-container { display: flex; flex-direction: column; gap: 10px; }
+    .rowblock { border: 1px dashed #ccc; border-radius: 10px; padding: 10px; background: #fafafa; }
+    .rowblock .rowhead { display:flex; justify-content: space-between; align-items:center; gap: 10px; margin-bottom: 8px; }
+    .rowblock .rowhead b { font-size: 0.95em; }
+    .rowblock .rowgrid { display:grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .rowblock button.tiny { padding: 4px 10px; font-size: 0.85rem; }
+
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+  <a href="/">Dashboard</a>
+  <a href="/feedback-report-generator">Feedback report generator</a>
+  <button type="button" class="secondary" id="clearAllTop">Clear all fields</button>
+  </div>
+
+  <form id="regForm">
+<!-- ROW 1 -->
+    <div class="form-row">
+
+        <!-- General -->
+        <div class="section">
+        <h2>General</h2>
+        
+        <label><strong>Your initials (required):</strong></label>
+        <select id="userInitials" required>
+        <option value="">-- Select initials --</option>
+        <option value="AJO">AJO</option>
+        <option value="WBE">WBE</option>
+        <option value="TLC">TLC</option>
+        <option value="SBO">SBO</option>
+        <option value="AEB">AEB</option>
+        <option value="TAN">TLC</option>
+        </select>
+
+        <label>Vessel Name:</label>
+        <input list="vessels" name="vessel_name" id="vesselInput" required />
+        <datalist id="vessels"></datalist>
+
+        <div class="row">
+          <div>
+            <label># Cylinders:</label>
+            <input type="number" id="cylCount" name="cylinders" min="1" readonly />
+          </div>
+
+          <div>
+            <label>IMO Number:</label>
+            <input type="number" id="imoNo" name="imo_no" readonly />
+          </div>
+
+          <div>
+            <label>Register ID:</label>
+            <input type="text" id="registerId" name="register_id" readonly />
+            <div class="small">Auto-generated for this registration.</div>
+          </div>
+          </div>
+
+          <div style="margin-top:20px; padding-top:15px; border-top:1px solid #ddd;">
+
+          <h2 style="margin-top:0;">Laboratory scrapedown report</h2>
+
+          <label style="display:block; margin-bottom:6px;">
+            Submitted at:
+          </label>
+
+          <input type="text"
+                id="lab_scrapedown_date"
+                name="lab_scrapedown_date"
+                placeholder="YYYY-MM-DD"
+                style="max-width: 420px;">
+
+          <div class="small" style="margin-top:8px;">
+            Optional – can be registered independently of other sections.
+          </div>
+
+        
+          
+          
+          <div style="margin-top:20px; padding-top:15px; border-top:1px solid #ddd;"></div>
+        <h2>Submissions (Latest 30)</h2>
+
+        <table id="feedbackTable">
+          <thead>
+            <tr>
+              <th>Init.</th>
+              <th>Vessel</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Register ID</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        </div>
+        </div>
+        
+
+        <!-- Feedback report -->
+        <div class="section" id="section-feedback_report">
+        <h2>Feedback report</h2>
+
+        <label>Feedback received from vessel:
+          <div class="small">Paste from Outlook (e.g. <span style="font-family:monospace;">Mon 02-Mar-26 1:49 PM</span>)</div>
+          <input
+            type="text"
+            id="feedback_received_dt"
+            name="feedback_received_dt"
+            placeholder="YYYY-MM-DD-HH-MM"
+            required
+          />
+          <input type="hidden" id="feedback_received_raw" name="feedback_received_raw" />
+        </label>
+
+          
+        <div class="hint">
+          <b>Copy/paste from Excel (bulk)</b><br/>
+          You can paste <b>multiple rows</b> (even hundreds). Click <b>Parse into records</b>.<br/>
+          Only the <b>last row</b> will be shown in the fields below as a control point.
+        </div>
+        
+        <label>Paste Excel row(s) here:</label>
+        <textarea id="feedbackPaste" placeholder="Paste row(s) from Excel here"></textarea>
+
+        <div class="btnbar" style="justify-content:flex-start; align-items:center;">
+            <button type="button" class="secondary" id="parseFeedbackBtn">Parse into records</button>
+            <button type="button" class="danger" id="clearFeedbackBtn">Clear section</button>
+            <button type="button" class="secondary" id="fbPrevBtn" onclick="fbPrev()">Prev</button>
+            <button type="button" class="secondary" id="fbNextBtn" onclick="fbNext()">Next</button>
+            <span class="pill" id="fbNavPill">Row: —</span>
+            <span class="pill" id="fbCountPill">Rows: 0</span>
+        </div>
+
+        <div class="cell" style="margin-top:10px;">
+          <h4 style="margin:0 0 8px;">Reporting period average</h4>
+          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <div class="cell" style="background:#fff;">
+              <label>Avg. cylinder oil feedrate [g/kWh]:</label>
+              <input type="text" id="avg_feedrate" readonly />
+            </div>
+            <div class="cell" style="background:#fff;">
+              <label>Avg. Fe total [ppm]:</label>
+              <input type="text" id="avg_fe_total" readonly />
+            </div>
+            <div class="cell" style="background:#fff;">
+              <label>Avg. residual BN [mgKOH/g]:</label>
+              <input type="text" id="avg_res_bn" readonly />
+            </div>
+          </div>
+          <div class="small" style="margin-top:6px;">
+            Calculated as the mean of cylinder values for Fe total and residual BN (blank/non-numeric ignored).
+          </div>
+        </div>
+
+        <div class="subhead">Parsed row:</div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div class="cell"><label>Date:</label><input type="text" name="fb_date" id="fb_date"></div>
+            <div class="cell"><label>Main Engine load [%]:</label><input type="text" name="me_load" id="me_load"></div>
+            <div class="cell"><label>Main Engine RPM [rpm]:</label><input type="text" name="me_rpm" id="me_rpm"></div>
+            <div class="cell"><label>Average Main Engine power [kWh]:</label><input type="text" name="avg_me_power" id="avg_me_power"></div>
+
+            <div class="cell"><label>Daily Cylinder Oil Consumption [ltrs]:</label><input type="text" name="daily_cyl_oil_cons" id="daily_cyl_oil_cons"></div>
+            <div class="cell"><label>Cylinder oil Feed rate [g/kWh]:</label><input type="text" name="cyl_oil_feed_rate" id="cyl_oil_feed_rate"></div>
+            <div class="cell"><label>Cylinder Lubricator ACC factor [% m/m]:</label><input type="text" name="acc_factor" id="acc_factor"></div>
+
+            <div class="cell"><label>Fuel type:</label><input type="text" name="fuel_type" id="fuel_type"></div>
+            <div class="cell"><label>Fuel sulphur content [%]:</label><input type="text" name="fuel_sulph" id="fuel_sulph"></div>
+            <div class="cell"><label>Humidity [%]:</label><input type="text" name="humidity" id="humidity"></div>
+            <div class="cell"><label>TBN of blended oil fed to engine [BN]:</label><input type="text" name="tbn_fed" id="tbn_fed"></div>
+
+            <div class="cell"><label>ME PC oil Temp Avg INLET [C degr.]:</label><input type="text" name="pc_inlet" id="pc_inlet"></div>
+            <div class="cell"><label>ME PC oil Temp Avg OUTLET [C degr.]:</label><input type="text" name="pc_outlet" id="pc_outlet"></div>
+
+            <div class="cell"><label>Ambient engine room temperature [C degr.]:</label><input type="text" name="amb_temp" id="amb_temp"></div>
+            <div class="cell"><label>TBN scraped down [BN]:</label><input type="text" name="tbn_scraped" id="tbn_scraped"></div>
+
+            <div class="cell"><label>ME LO purifier desludging intervals [hrs]:</label><input type="text" name="me_lo_desludge" id="me_lo_desludge"></div>
+            <div class="cell"><label>ME LO purification temperature [C degr.:</label><input type="text" name="me_lo_temp" id="me_lo_temp"></div>
+
+            <div class="cell"><label>ME RH [hrs]:</label><input type="text" name="me_rh" id="me_rh"></div>
+        </div>
+
+        <div class="subhead">Per-cylinder fields</div>
+
+        <div class="cell">
+            <h4>Fe magnetic [ppm] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="feMagGrid"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Fe corrosive [ppm] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="feCorGrid"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Fe total [ppm] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="feTotGrid"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Residual TBN [BN] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="resTbnGrid"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Cylinder RH [hrs] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="unitGrid"></div>
+        </div>
+
+        <div class="small">
+            Parser expects order after fixed columns: <b>Fe magnetic</b>, <b>Fe corrosive</b>, <b>Fe total</b>, <b>Residual TBN</b>, <b>Unit</b>, then <b>ME RH</b>.
+        </div>
+        </div>
+
+    </div> <!-- END ROW 1 -->
+
+      <!-- ROW 2 -->
+    <div class="form-row">
+
+        <!-- Scavenge inspection -->
+        <div class="section" id="section-scavenge_inspection">
+        <h2>Scavenge inspection report</h2>
+
+        <label>Paste Excel row(s) here:</label>
+        <textarea id="scavPaste" placeholder="Paste row(s) from Excel here"></textarea>
+
+        <div class="btnbar" style="justify-content:flex-start; align-items:center;">
+            <button type="button" class="secondary" id="parseScavBtn">Parse into records</button>
+            <button type="button" class="danger" id="clearScavBtn">Clear section</button>
+            <span class="pill" id="scavCountPill">Rows: 0</span>
+        </div>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div class="cell"><label>Date:</label><input type="text" name="scav_date" id="scav_date" placeholder="dd-mm-yyyy"></div>
+            <div class="cell"><label>Coating type:</label><input type="text" name="coat_type" id="coat_type"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Piston ring thickness per cylinder (PR1..PR4)</h4>
+            <div class="small">Auto scales with cylinders. Paste parsing expects PR1..PR4 blocks in order.</div>
+            <div id="ringTable"></div>
+        </div>
+
+        <div class="cell">
+            <h4>Cylinder RH [hrs] (Cylinder 1..N)</h4>
+            <div class="grid cyl" id="scavUnitGrid"></div>
+        </div>
+
+        <div class="cell">
+            <h4>ME RH [hrs]</h4>
+            <input type="text" name="scav_mfrh" id="scav_mfrh" />
+        </div>
+        </div>
+
+        
+<!-- ME system oil data -->
+<div class="section" id="section-me_sys_data">
+  <h2>ME system oil data</h2>
+
+  <div class="hint">
+    <b>Manual entry (multiple rows)</b><br/>
+    Fill the fields for the current row, then click <b>Add row</b> to start a new blank row.<br/>
+    Use <b>Prev</b>/<b>Next</b> to move between the rows you’ve created.
+  </div>
+
+  <div class="btnbar" style="justify-content:flex-start; align-items:center; flex-wrap:wrap;">
+    <button type="button" class="secondary" id="sysPrevBtn" onclick="meSysPrev()">Prev</button>
+    <button type="button" class="secondary" id="sysNextBtn" onclick="meSysNext()">Next</button>
+    <span class="pill" id="sysNavPill">Row: —</span>
+
+    <button type="button" class="secondary" id="addSysRowBtn" onclick="meSysAddRow()">Add row</button>
+    <button type="button" class="danger" id="clearSysBtn" onclick="meSysClear()">Clear section</button>
+    <span class="pill" id="sysCountPill">Rows: 0</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+    <div class="cell"><label>Date of sample:</label><input type="text" name="sys_date" id="sys_date" placeholder="dd-mm-yyyy"></div>
+    <div class="cell"><label>Viscosity @ 40°C [cSt]:</label><input type="text" name="visc40" id="visc40"></div>
+    <div class="cell"><label>Viscosity @ 100°C [cSt]:</label><input type="text" name="visc100" id="visc100"></div>
+    <div class="cell"><label>Base number [BN]:</label><input type="text" name="base_number" id="base_number"></div>
+    <div class="cell"><label>Top up volume [L]:</label><input type="text" name="topup_volume" id="topup_volume"></div>
+    <div class="cell"><label>Vanadium:</label><input type="text" name="vanadium" id="vanadium"></div>
+    <div class="cell"><label>PQ Index:</label><input type="text" name="pq_index" id="pq_index"></div>
+    <div class="cell"><label>Oil on label:</label><input type="text" name="oil_on_label" id="oil_on_label"></div>
+    <div class="cell"><label>ISO Code:</label><input type="text" name="iso_code" id="iso_code"></div>
+    <div class="cell"><label>Particle count &gt; 4 [qty]:</label><input type="text" name="pc4" id="pc4"></div>
+    <div class="cell"><label>Particle count &gt; 6 [qty]:</label><input type="text" name="pc6" id="pc6"></div>
+    <div class="cell"><label>Particle count &gt; 14 [qty]:</label><input type="text" name="pc14" id="pc14"></div>
+  </div>
+
+  <div class="small" style="margin-top:8px;">
+    Tip: The current row will be included on submit (even if you don’t click “Add row”), as long as at least one field is filled.
+  </div>
+</div>
+
+<!-- Laboratory scrapedown (not wired yet) -->
+        <div class="section" id="section-lab_scrapedown" style="display:none;">
+          <h2>Laboratory scrapedown</h2>
+          <div class="hint">
+            This section toggle is ready, but database submission is not implemented yet.
+          </div>
+        </div>
+
+        <!-- Laboratory ME SYS oil report (not wired yet) -->
+        <div class="section" id="section-me_sys_oil" style="display:none;">
+          <h2>Laboratory ME SYS oil report</h2>
+          <div class="hint">
+            This section toggle is ready, but database submission is not implemented yet.
+          </div>
+        </div>
+
+        </div> <!-- END ROW 2 -->
+
+        <div class="btnbar">
+        <button type="submit">Submit feedback registration</button>
+<button type="button" class="secondary" id="clearAllBottom">Clear all fields</button>
+        </div>
+
+
+  </form>
+
+  <script>
+    let vessels = [];
+    let currentCyl = 0;
+async function loadVessels() {
+      const res = await fetch('/vessels');
+      vessels = await res.json();
+
+      const dataList = document.getElementById('vessels');
+      dataList.innerHTML = '';
+      vessels.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.vessel_name;
+        dataList.appendChild(opt);
+      });
+    }
+
+    function setCylinderCount(n) {
+      currentCyl = Math.max(0, parseInt(n || 0, 10) || 0);
+      document.getElementById('cylCount').value = currentCyl || '';
+      const pill = document.getElementById('cylPill');
+        if (pill) pill.textContent = `Cylinders: ${currentCyl || '—'}`;
+
+      buildCylGrid('feMagGrid', 'fe_mag');
+      buildCylGrid('feCorGrid', 'fe_cor');
+      buildCylGrid('feTotGrid', 'fe_tot');
+      buildCylGrid('resTbnGrid', 'res_tbn');
+      buildCylGrid('unitGrid', 'unit_val');
+
+      buildRingTable();
+      buildCylGrid('scavUnitGrid', 'scav_unit');
+    }
+
+    function generateRegisterId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'RID-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
+    function setRegisterId() {
+      const el = document.getElementById('registerId');
+      if (el) el.value = generateRegisterId();
+    }
+
+    function normalizeDateToISO(input) {
+      if (input === null || input === undefined) return "";
+      let s = String(input).trim();
+      if (!s) return "";
+
+      // Remove time part (common cases)
+      s = s.replace(/T.*$/i, "");                 // 2026-02-24T10:00:00
+      s = s.replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, ""); // 10:30 or 10:30:12
+      s = s.replace(/\s+/g, " ").trim();
+
+      const monthMap = {
+        jan: 1, january: 1,
+        feb: 2, february: 2,
+        mar: 3, march: 3,
+        apr: 4, april: 4,
+        may: 5,
+        jun: 6, june: 6,
+        jul: 7, july: 7,
+        aug: 8, august: 8,
+        sep: 9, sept: 9, september: 9,
+        oct: 10, october: 10,
+        nov: 11, november: 11,
+        dec: 12, december: 12,
+      };
+
+      const pad2 = (n) => String(n).padStart(2, "0");
+
+      // Helper: build ISO
+      const iso = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
+
+      // If it's only digits and looks like Excel serial date (e.g., 45234)
+      // Comment out if you don't want this behavior.
+      if (/^\d{5,6}$/.test(s)) {
+        const serial = parseInt(s, 10);
+        // Excel serial: day 1 = 1899-12-31 (with the 1900 leap-year bug).
+        // Common practical conversion: serial days from 1899-12-30.
+        const base = new Date(Date.UTC(1899, 11, 30));
+        base.setUTCDate(base.getUTCDate() + serial);
+        const y = base.getUTCFullYear();
+        const m = base.getUTCMonth() + 1;
+        const d = base.getUTCDate();
+        return iso(y, m, d);
+      }
+
+      // Normalize separators
+      const sSep = s.replace(/[.,]/g, "/").replace(/-/g, "/");
+
+
+      // Convert 2-digit year to 4-digit year (pivot logic)
+      const pivotYear = (yy) => {
+        const n = parseInt(yy, 10);
+        if (Number.isNaN(n)) return null;
+        return (n >= 70) ? (1900 + n) : (2000 + n);
+      };
+
+      // DD/MM/YY  (e.g., 26-12-25 → 2025-12-26)
+      const m2 = sSep.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+      if (m2) {
+        const d = +m2[1];
+        const mo = +m2[2];
+        const y = pivotYear(m2[3]);
+        if (y) return iso(y, mo, d);
+      }
+      
+
+      // 1) YYYY/MM/DD (allow 1-2 digit M/D)
+      let m = sSep.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+      if (m) return iso(+m[1], +m[2], +m[3]);
+
+      // 2) DD/MM/YYYY
+      m = sSep.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return iso(+m[3], +m[2], +m[1]);
+
+      // 3) Month name formats: "24 Feb 2026", "Feb 24 2026", "Feb 24, 2026"
+      const cleaned = s
+        .replace(/,/g, " ")
+        .replace(/-/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+
+      const parts = cleaned.split(" ");
+      // Try patterns by scanning for a month word
+      for (let i = 0; i < parts.length; i++) {
+        const key = parts[i];
+        if (!(key in monthMap)) continue;
+
+        const month = monthMap[key];
+
+        // Pattern A: DD MON YYYY (e.g. 24 feb 2026)
+        if (i - 1 >= 0 && i + 1 < parts.length) {
+          const d = parseInt(parts[i - 1], 10);
+          const y = parseInt(parts[i + 1], 10);
+          if (Number.isFinite(d) && Number.isFinite(y) && y >= 0) {
+            const year = y < 100 ? (y >= 70 ? 1900 + y : 2000 + y) : y;
+            return iso(year, month, d);
+          }
+        }
+
+        // Pattern B: MON DD YYYY (e.g. feb 24 2026)
+        if (i + 2 < parts.length) {
+          const d = parseInt(parts[i + 1], 10);
+          const y = parseInt(parts[i + 2], 10);
+          if (Number.isFinite(d) && Number.isFinite(y) && y >= 0) {
+            const year = y < 100 ? (y >= 70 ? 1900 + y : 2000 + y) : y;
+            return iso(year, month, d);
+          }
+        }
+      }
+
+  // 4) Last resort: Date.parse (can be locale-dependent; use only as fallback)
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) {
+    const d = new Date(t);
+    return iso(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  }
+
+  // If we can't parse, return original (or empty) so backend can handle/reject
+  return "";
+}
+
+    function buildCylGrid(containerId, fieldPrefix) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = '';
+      if (!currentCyl) return;
+
+      for (let i = 1; i <= currentCyl; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'cell';
+        wrap.style.padding = '8px';
+
+        const lab = document.createElement('label');
+        lab.textContent = `Unit ${i}`;
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.name = `${fieldPrefix}_${i}`;
+        inp.id = `${fieldPrefix}_${i}`;
+
+        wrap.appendChild(lab);
+        wrap.appendChild(inp);
+        el.appendChild(wrap);
+      }
+    }
+
+    function buildRingTable() {
+        const host = document.getElementById('ringTable');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!currentCyl) return;
+
+        const rings = ['PR1','PR2','PR3','PR4'];
+        const maxPerRow = 6;
+
+        for (let start = 1; start <= currentCyl; start += maxPerRow) {
+
+            const end = Math.min(start + maxPerRow - 1, currentCyl);
+            const blockCylCount = end - start + 1;
+
+            const tbl = document.createElement('div');
+            tbl.className = 'grid';
+            tbl.style.gridTemplateColumns = `repeat(${blockCylCount + 1}, minmax(80px, 1fr))`;
+            tbl.style.alignItems = 'start';
+            tbl.style.marginBottom = '6px';
+
+            const headerCell = (text) => {
+            const d = document.createElement('div');
+            d.className = 'cell';
+            d.style.background = '#fafafa';
+            d.style.fontWeight = '700';
+            d.style.textAlign = 'center';
+            d.textContent = text;
+            return d;
+            };
+
+            tbl.appendChild(headerCell(''));
+            for (let c = start; c <= end; c++) {
+            tbl.appendChild(headerCell(`Cyl ${c}`));
+            }
+
+            rings.forEach(pr => {
+            tbl.appendChild(headerCell(pr));
+            for (let c = start; c <= end; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.name = `ring_${pr.toLowerCase()}_${c}`;
+                inp.id = `ring_${pr.toLowerCase()}_${c}`;
+                inp.placeholder = 'µm';
+
+                cell.appendChild(inp);
+                tbl.appendChild(cell);
+            }
+            });
+
+            host.appendChild(tbl);
+        }
+        }
+
+
+    // Vessel selection -> set cylinders + IMO
+    document.addEventListener('DOMContentLoaded', () => {
+
+      const vesselEl = document.getElementById('vesselInput');
+
+      if (vesselEl) {
+        vesselEl.addEventListener('input', function () {
+
+          const selected = vessels.find(v => v.vessel_name === this.value);
+
+          // Set cylinders
+          setCylinderCount(selected?.cylinders || 0);
+
+          // Set IMO number
+          const imoEl = document.getElementById('imoNo');
+          if (imoEl) imoEl.value = selected?.imo_no || '';
+        });
+      }
+
+      // Generate register ID on page load
+      setRegisterId();
+
+      // Load vessel list
+      loadVessels();
+    });
+
+
+    // Helpers
+    function splitExcelRows(text) {
+        // Keep raw lines (do NOT trim), otherwise Excel rows with empty trailing columns lose tabs.
+        const rawLines = (text || '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n');
+
+        const lines = rawLines
+            .map(l => (l ?? '').toString())
+            // keep rows that contain at least one non-whitespace character
+            .filter(l => l.replace(/\s/g, '') !== '');
+
+        return lines.map(line => {
+            if (line.includes('\t')) return line.split('\t').map(s => (s ?? '').toString().trim());
+            if (line.includes(';'))  return line.split(';').map(s => (s ?? '').toString().trim());
+            return line.split(/\s{2,}/).map(s => (s ?? '').toString().trim());
+        });
+        }
+
+function warnIfMismatch(values, expectedMin, label) {
+      // Non-blocking warning only (rows may legitimately end early when trailing columns are empty in Excel).
+      if (values.length < expectedMin) {
+        console.warn(`${label}: row has ${values.length} columns, expected ${expectedMin}. Padding missing columns with blanks.`);
+      }
+    }
+
+
+    function padValues(values, targetLen) {
+      const out = Array.isArray(values) ? values.slice(0) : [];
+      const n = Math.max(0, parseInt(targetLen || 0, 10) || 0);
+      if (n === 0) return out;
+      if (out.length < n) out.push(...Array(n - out.length).fill(""));
+      if (out.length > n) out.length = n;
+      return out;
+
+    }
+
+    // -----------------------------------------
+    // Feedback report parser (YOUR ACTUAL HEADER)
+    // -----------------------------------------
+    //
+    // Header you provided:
+    // Date
+    // Main Engine load
+    // Main Engine RPM
+    // Average Main Engine power
+    // Daily Cylinder Oil Consumption
+    // Cylinder oil Feed rate
+    // Cylinder Lubricator ACC factor
+    // Fuel type
+    // Fuel sulphur content
+    // Humidity [%]
+    // TBN of blended oil fed to engine
+    // ME Piston Cooling oil Temperatur Average INLET/OUTLET
+    // Ambient engine room temperature
+    // TBN scraped down
+    // ME LO purifier desludging intervals
+    // ME LO purification temperature
+    // Fe magnetic 1..N
+    // Fe corrosive 1..N
+    // Fe total 1..N
+    // Residual TBN 1..N
+    // Unit 1..N
+    // ME RH
+    //
+    function parseFeedbackRow(values) {
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (el) el.value = v ?? '';
+      };
+
+      if (!currentCyl) return;
+
+      const fixedCols = 17;
+      const expectedMin = fixedCols + (5 * currentCyl) + 1; // + ME RH
+      values = padValues(values, expectedMin);
+      warnIfMismatch(values, expectedMin, "Feedback report");
+
+      values[0]=normalizeDateToISO(values[0]);
+
+        set('fb_date', values[0]);
+        set('me_load', values[1]);
+        set('me_rpm', values[2]);
+        set('avg_me_power', values[3]);
+        set('daily_cyl_oil_cons', values[4]);
+        set('cyl_oil_feed_rate', values[5]);
+        set('acc_factor', values[6]);
+        set('fuel_type', values[7]);
+        set('fuel_sulph', values[8]);
+        set('humidity', values[9]);
+        set('tbn_fed', values[10]);
+        set('pc_inlet', values[11]);
+        set('pc_outlet', values[12]);
+        set('amb_temp', values[13]);
+        set('tbn_scraped', values[14]);
+        set('me_lo_desludge', values[15]);
+        set('me_lo_temp', values[16]);
+
+    let idx = fixedCols;
+
+      
+
+      for (let i = 1; i <= currentCyl; i++) set(`fe_mag_${i}`, values[idx++] ?? '');
+      for (let i = 1; i <= currentCyl; i++) set(`fe_cor_${i}`, values[idx++] ?? '');
+      for (let i = 1; i <= currentCyl; i++) set(`fe_tot_${i}`, values[idx++] ?? '');
+      for (let i = 1; i <= currentCyl; i++) set(`res_tbn_${i}`, values[idx++] ?? '');
+      for (let i = 1; i <= currentCyl; i++) set(`unit_val_${i}`, values[idx++] ?? '');
+
+      set('me_rh', values[idx] ?? values[values.length - 1] ?? '');
+
+      _wireFeedbackAvgListeners();
+      updateFeedbackAverages();
+
+    }
+
+    // -----------------------------------------
+    // Scavenge parser (based on your example)
+    // -----------------------------------------
+    // Expected order:
+    // date, cool type,
+    // PR1[1..N], PR2[1..N], PR3[1..N], PR4[1..N],
+    // Unit[1..N],
+    // MFRH
+    //
+    function parseScavRow(values) {
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (el) el.value = v ?? '';
+      };
+
+      if (!currentCyl) return;
+
+      const expectedMin = 2 + (4 * currentCyl) + currentCyl + 1;
+      values = padValues(values, expectedMin);
+      warnIfMismatch(values, expectedMin, "Scavenge inspection");
+
+      values[0]=normalizeDateToISO(values[0]);
+      set('scav_date', values[0]);
+      set('coat_type', values[1]);
+
+      let idx = 2;
+
+      const rings = ['pr1','pr2','pr3','pr4'];
+      rings.forEach(pr => {
+        for (let c = 1; c <= currentCyl; c++) {
+          set(`ring_${pr}_${c}`, values[idx++] ?? '');
+        }
+      });
+
+      for (let c = 1; c <= currentCyl; c++) {
+        set(`scav_unit_${c}`, values[idx++] ?? '');
+      }
+
+      set('scav_mfrh', values[idx] ?? values[values.length - 1] ?? '');
+    }
+
+    function feedbackValuesToRecord(values) {
+        if (!currentCyl) return null;
+
+        // Fixed columns (17):
+        // Date, ME load, ME RPM, Avg ME power, Daily cyl oil cons, Feed rate, ACC,
+        // Fuel type, Fuel sulph, Humidity, TBN fed, PC inlet, PC outlet, Ambient temp,
+        // TBN scraped, ME LO desludge interval, ME LO purification temp
+        const fixedCols = 17;
+        const expectedMin = fixedCols + (5 * currentCyl) + 1; // + ME RH
+        values = padValues(values, expectedMin);
+
+        let idx = fixedCols;
+
+        const rec = {
+            fb_date: normalizeDateToISO(values[0]),
+            me_load: values[1],
+            me_rpm: values[2],
+            avg_me_power: values[3],
+            daily_cyl_oil_cons: values[4],
+            cyl_oil_feed_rate: values[5],
+            acc_factor: values[6],
+            fuel_type: values[7],
+            fuel_sulph: values[8],
+            humidity: values[9],
+            tbn_fed: values[10],
+            pc_inlet: values[11],
+            pc_outlet: values[12],
+            amb_temp: values[13],
+            tbn_scraped: values[14],
+            me_lo_desludge: values[15],
+            me_lo_temp: values[16],
+            per_cylinder: { fe_mag: [], fe_cor: [], fe_tot: [], res_tbn: [], unit: [] },
+            me_rh: ''
+        };
+
+        for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_mag.push(values[idx++] ?? '');
+        for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_cor.push(values[idx++] ?? '');
+        for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_tot.push(values[idx++] ?? '');
+        for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.res_tbn.push(values[idx++] ?? '');
+        for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.unit.push(values[idx++] ?? '');
+
+        rec.me_rh = values[idx] ?? values[values.length - 1] ?? '';
+        return rec;
+        }
+        
+
+        function scavValuesToRecord(values) {
+        if (!currentCyl) return null;
+
+        const expectedMin = 2 + (4 * currentCyl) + currentCyl + 1;
+        values = padValues(values, expectedMin);
+
+        let idx = 2;
+
+        const rec = {
+            scav_date: normalizeDateToISO(values[0]),
+            coat_type: values[1],
+            rings: { pr1: [], pr2: [], pr3: [], pr4: [] },
+            unit: [],
+            scav_mfrh: ''
+        };
+
+        ['pr1','pr2','pr3','pr4'].forEach(pr => {
+            for (let c = 1; c <= currentCyl; c++) rec.rings[pr].push(values[idx++] ?? '');
+        });
+
+        for (let c = 1; c <= currentCyl; c++) rec.unit.push(values[idx++] ?? '');
+
+        rec.scav_mfrh = values[idx] ?? values[values.length - 1] ?? '';
+        return rec;
+        
+
+}
+
+function meSysValuesToRecord(values) {
+    // Expected order:
+    // sys_date, visc40, visc100, base_number, topup_volume, vanadium, pq_index, oil_on_label, iso_code, pc4, pc6, pc14
+    if (!values || values.length < 1) return null;
+
+    const rec = {
+        sys_date: normalizeDateToISO(values[0]),
+        visc40: values[1] ?? '',
+        visc100: values[2] ?? '',
+        base_number: values[3] ?? '',
+        topup_volume: values[4] ?? '',
+        vanadium: values[5] ?? '',
+        pq_index: values[6] ?? '',
+        oil_on_label: values[7] ?? '',
+        iso_code: values[8] ?? '',
+        pc4: values[9] ?? '',
+        pc6: values[10] ?? '',
+        pc14: values[11] ?? ''
+    };
+
+    // If everything is empty, return null
+    const anyVal = Object.keys(rec).some(k => (rec[k] ?? '') !== '');
+    return anyVal ? rec : null;
+}
+
+function parseMeSysRow(values) {
+    const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (el) el.value = v ?? '';
+    };
+    if (!values || !values.length) return;
+
+    values[0] = normalizeDateToISO(values[0]);
+
+    set('sys_date', values[0]);
+    set('visc40', values[1]);
+    set('visc100', values[2]);
+    set('base_number', values[3]);
+    set('topup_volume', values[4]);
+    set('vanadium', values[5]);
+    set('pq_index', values[6]);
+    set('oil_on_label', values[7]);
+    set('iso_code', values[8]);
+    set('pc4', values[9]);
+    set('pc6', values[10]);
+    set('pc14', values[11]);
+}
+
+function readMeSysInputsAsRecord() {
+    const get = (id) => (document.getElementById(id)?.value ?? '').trim();
+    const rec = {
+        sys_date: normalizeDateToISO(get('sys_date')),
+        visc40: get('visc40'),
+        visc100: get('visc100'),
+        base_number: get('base_number'),
+        topup_volume: get('topup_volume'),
+        vanadium: get('vanadium'),
+        pq_index: get('pq_index'),
+        oil_on_label: get('oil_on_label'),
+        iso_code: get('iso_code'),
+        pc4: get('pc4'),
+        pc6: get('pc6'),
+        pc14: get('pc14')
+    };
+    const anyVal = Object.keys(rec).some(k => (rec[k] ?? '') !== '');
+    return anyVal ? rec : null;
+}
+
+
+function updateMeSysPill() {
+    const pill = document.getElementById('sysCountPill');
+    if (pill) pill.textContent = `Rows: ${me_sys_rows.length}`;
+    const t = document.getElementById('sysRowPreviewText');
+    if (t) t.textContent = String(me_sys_rows.length);
+}
+
+function renderMeSysRows() {
+    const host = document.getElementById('meSysRowsContainer');
+    if (!host) return;
+
+    host.innerHTML = '';
+    host.className = 'rows-container';
+
+    if (!Array.isArray(me_sys_rows) || me_sys_rows.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = 'No rows queued.';
+        host.appendChild(empty);
+        return;
+    }
+
+    const fields = [
+        ['sys_date','Date of sample'],
+        ['visc40','Viscosity @ 40°C [cSt]'],
+        ['visc100','Viscosity @ 100°C [cSt]'],
+        ['base_number','Base number [BN]'],
+        ['topup_volume','Top up volume [L]'],
+        ['vanadium','Vanadium'],
+        ['pq_index','PQ Index'],
+        ['oil_on_label','Oil on label'],
+        ['iso_code','ISO Code'],
+        ['pc4','Particle count > 4 [qty]'],
+        ['pc6','Particle count > 6 [qty]'],
+        ['pc14','Particle count > 14 [qty]'],
+    ];
+
+    me_sys_rows.forEach((row, idx) => {
+        const block = document.createElement('div');
+        block.className = 'rowblock';
+
+        const head = document.createElement('div');
+        head.className = 'rowhead';
+
+        const title = document.createElement('b');
+        title.textContent = `Row ${idx + 1}`;
+        head.appendChild(title);
+
+        const right = document.createElement('div');
+        right.style.display = 'flex';
+        right.style.gap = '8px';
+        right.style.alignItems = 'center';
+
+        const useBtn = document.createElement('button');
+        useBtn.type = 'button';
+        useBtn.className = 'secondary tiny';
+        useBtn.textContent = 'Load to fields';
+        useBtn.addEventListener('click', () => {
+            parseMeSysRow([
+                row.sys_date || '',
+                row.visc40 || '',
+                row.visc100 || '',
+                row.base_number || '',
+                row.topup_volume || '',
+                row.vanadium || '',
+                row.pq_index || '',
+                row.oil_on_label || '',
+                row.iso_code || '',
+                row.pc4 || '',
+                row.pc6 || '',
+                row.pc14 || ''
+            ]);
+        });
+        right.appendChild(useBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'danger tiny';
+        delBtn.textContent = 'Remove';
+        delBtn.addEventListener('click', () => {
+            me_sys_rows.splice(idx, 1);
+            updateMeSysPill();
+            renderMeSysRows();
+        });
+        right.appendChild(delBtn);
+
+        head.appendChild(right);
+        block.appendChild(head);
+
+        const grid = document.createElement('div');
+        grid.className = 'rowgrid';
+
+        fields.forEach(([key, label]) => {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.style.background = '#fff';
+
+            const lab = document.createElement('label');
+            lab.textContent = label + ':';
+            cell.appendChild(lab);
+
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.value = (row?.[key] ?? '');
+            inp.placeholder = (key === 'sys_date') ? 'YYYY-MM-DD' : '';
+            inp.addEventListener('input', () => {
+                me_sys_rows[idx][key] = inp.value;
+            });
+            inp.addEventListener('blur', () => {
+                if (key === 'sys_date') {
+                    me_sys_rows[idx][key] = normalizeDateToISO(inp.value);
+                    inp.value = me_sys_rows[idx][key] || '';
+                }
+            });
+
+            cell.appendChild(inp);
+            grid.appendChild(cell);
+        });
+
+        block.appendChild(grid);
+        host.appendChild(block);
+    });
+}
+
+
+
+// -----------------------------------------
+// Reporting period averages (Feedback report)
+// -----------------------------------------
+function _parseNum(x) {
+  if (x === null || x === undefined) return NaN;
+  const s = String(x).trim().replace(',', '.');
+  if (!s) return NaN;
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+function updateFeedbackAverages() {
+  // If we have parsed records, compute averages across ALL parsed rows.
+  // Also commit current visible edits (non-destructive) so averages stay in sync while typing.
+  if (fbState && Array.isArray(fbState.records) && fbState.records.length && fbState.validIdxs && fbState.validIdxs.length) {
+    try { fbCommitCurrent(); } catch(_) {}
+
+    let sumFeed = 0, nFeed = 0;
+    let sumFe = 0, nFe = 0;
+    let sumBN = 0, nBN = 0;
+
+    for (const idx of fbState.validIdxs) {
+      const r = fbState.records[idx];
+      if (!r) continue;
+
+      const fr = _parseNum(r.cyl_oil_feed_rate);
+      if (!Number.isNaN(fr)) { sumFeed += fr; nFeed++; }
+
+      for (let i = 1; i <= (currentCyl || 0); i++) {
+        const feRaw = (r && r.per_cylinder && Array.isArray(r.per_cylinder.fe_tot)) ? r.per_cylinder.fe_tot[i - 1]
+          : (r && Array.isArray(r.fe_tot)) ? r.fe_tot[i - 1]
+          : r?.[`fe_tot_${i}`];
+        const fe = _parseNum(feRaw);
+        if (!Number.isNaN(fe)) { sumFe += fe; nFe++; }
+
+        const bnRaw = (r && r.per_cylinder && Array.isArray(r.per_cylinder.res_tbn)) ? r.per_cylinder.res_tbn[i - 1]
+          : (r && Array.isArray(r.res_tbn)) ? r.res_tbn[i - 1]
+          : r?.[`res_tbn_${i}`];
+        const bn = _parseNum(bnRaw);
+        if (!Number.isNaN(bn)) { sumBN += bn; nBN++; }
+      }
+    }
+
+    const outFeed = document.getElementById('avg_feedrate');
+    const outFe   = document.getElementById('avg_fe_total');
+    const outBN   = document.getElementById('avg_res_bn');
+
+    if (outFeed) outFeed.value = (nFeed === 0) ? '' : (Math.round((sumFeed / nFeed) * 100) / 100).toString();
+    if (outFe)   outFe.value   = (nFe   === 0) ? '' : (Math.round((sumFe   / nFe)   * 10)  / 10).toString();
+    if (outBN)   outBN.value   = (nBN   === 0) ? '' : (Math.round((sumBN   / nBN)   * 100) / 100).toString();
+    return;
+  }
+
+  // Fallback: no parsed records -> show average for the currently visible inputs (single-row view)
+  const feedEl = document.getElementById('cyl_oil_feed_rate');
+  const vFeed = _parseNum(feedEl?.value);
+
+  let sumFe = 0, nFe = 0;
+  let sumBN = 0, nBN = 0;
+
+  for (let i = 1; i <= (currentCyl || 0); i++) {
+    const fe = _parseNum(document.getElementById(`fe_tot_${i}`)?.value);
+    if (!Number.isNaN(fe)) { sumFe += fe; nFe++; }
+
+    const bn = _parseNum(document.getElementById(`res_tbn_${i}`)?.value);
+    if (!Number.isNaN(bn)) { sumBN += bn; nBN++; }
+  }
+
+  const outFeed = document.getElementById('avg_feedrate');
+  const outFe   = document.getElementById('avg_fe_total');
+  const outBN   = document.getElementById('avg_res_bn');
+
+  if (outFeed) outFeed.value = Number.isNaN(vFeed) ? '' : (Math.round(vFeed * 100) / 100).toString();
+  if (outFe)   outFe.value   = (nFe === 0) ? '' : (Math.round((sumFe / nFe) * 10) / 10).toString();
+  if (outBN)   outBN.value   = (nBN === 0) ? '' : (Math.round((sumBN / nBN) * 100) / 100).toString();
+  }
+
+  function _wireFeedbackAvgListeners() {
+    const feedEl = document.getElementById('cyl_oil_feed_rate');
+    if (feedEl && !feedEl._avgWired) {
+      feedEl.addEventListener('input', updateFeedbackAverages);
+      feedEl._avgWired = true;
+    }
+    for (let i = 1; i <= (currentCyl || 0); i++) {
+      const fe = document.getElementById(`fe_tot_${i}`);
+      if (fe && !fe._avgWired) { fe.addEventListener('input', updateFeedbackAverages); fe._avgWired = true; }
+      const bn = document.getElementById(`res_tbn_${i}`);
+      if (bn && !bn._avgWired) { bn.addEventListener('input', updateFeedbackAverages); bn._avgWired = true; }
+    }
+  }
+  
+// Ensure listeners exist after cylinder grids rebuild
+const _origSetCylinderCount = setCylinderCount;
+setCylinderCount = function(n) {
+  _origSetCylinderCount(n);
+  _wireFeedbackAvgListeners();
+  updateFeedbackAverages();
+};
+
+// Buttons
+    let feedback_rows = [];
+
+// Feedback report row navigation (iterate through parsed rows)
+let fbState = { records: [], validIdxs: [], pos: -1 };
+
+function fbSetPill() {
+  const pill = document.getElementById('fbNavPill');
+  if (!pill) return;
+  if (!fbState.validIdxs.length || fbState.pos < 0) { pill.textContent = 'Row: —'; return; }
+  pill.textContent = `Row: ${fbState.pos + 1} / ${fbState.validIdxs.length}`;
+}
+
+function fbReadRecordFromInputs() {
+  if (!currentCyl) return null;
+  const get = (id) => {
+    const el = document.getElementById(id);
+    return (el ? el.value : '').trim();
+  };
+
+  const rec = {
+    fb_date: normalizeDateToISO(get('fb_date')),
+    me_load: get('me_load'),
+    me_rpm: get('me_rpm'),
+    avg_me_power: get('avg_me_power'),
+    daily_cyl_oil_cons: get('daily_cyl_oil_cons'),
+    cyl_oil_feed_rate: get('cyl_oil_feed_rate'),
+    acc_factor: get('acc_factor'),
+    fuel_type: get('fuel_type'),
+    fuel_sulph: get('fuel_sulph'),
+    humidity: get('humidity'),
+    tbn_fed: get('tbn_fed'),
+    pc_inlet: get('pc_inlet'),
+    pc_outlet: get('pc_outlet'),
+    amb_temp: get('amb_temp'),
+    tbn_scraped: get('tbn_scraped'),
+    me_lo_desludge: get('me_lo_desludge'),
+    me_lo_temp: get('me_lo_temp'),
+    per_cylinder: { fe_mag: [], fe_cor: [], fe_tot: [], res_tbn: [], unit: [] },
+    me_rh: get('me_rh')
+  };
+
+  for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_mag.push(get(`fe_mag_${i}`));
+  for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_cor.push(get(`fe_cor_${i}`));
+  for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.fe_tot.push(get(`fe_tot_${i}`));
+  for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.res_tbn.push(get(`res_tbn_${i}`));
+  for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.unit.push(get(`unit_val_${i}`));
+
+  return rec;
+}
+
+function fbWriteRecordToInputs(rec) {
+  if (!rec) return;
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.value = v ?? '';
+  };
+
+  set('fb_date', rec.fb_date ?? '');
+  set('me_load', rec.me_load ?? '');
+  set('me_rpm', rec.me_rpm ?? '');
+  set('avg_me_power', rec.avg_me_power ?? '');
+  set('daily_cyl_oil_cons', rec.daily_cyl_oil_cons ?? '');
+  set('cyl_oil_feed_rate', rec.cyl_oil_feed_rate ?? '');
+  set('acc_factor', rec.acc_factor ?? '');
+  set('fuel_type', rec.fuel_type ?? '');
+  set('fuel_sulph', rec.fuel_sulph ?? '');
+  set('humidity', rec.humidity ?? '');
+  set('tbn_fed', rec.tbn_fed ?? '');
+  set('pc_inlet', rec.pc_inlet ?? '');
+  set('pc_outlet', rec.pc_outlet ?? '');
+  set('amb_temp', rec.amb_temp ?? '');
+  set('tbn_scraped', rec.tbn_scraped ?? '');
+  set('me_lo_desludge', rec.me_lo_desludge ?? '');
+  set('me_lo_temp', rec.me_lo_temp ?? '');
+
+  const pc = rec.per_cylinder || {};
+  const fe_mag = pc.fe_mag || [];
+  const fe_cor = pc.fe_cor || [];
+  const fe_tot = pc.fe_tot || [];
+  const res_tbn = pc.res_tbn || [];
+  const unit = pc.unit || [];
+
+  for (let i = 1; i <= currentCyl; i++) set(`fe_mag_${i}`, fe_mag[i - 1] ?? '');
+  for (let i = 1; i <= currentCyl; i++) set(`fe_cor_${i}`, fe_cor[i - 1] ?? '');
+  for (let i = 1; i <= currentCyl; i++) set(`fe_tot_${i}`, fe_tot[i - 1] ?? '');
+  for (let i = 1; i <= currentCyl; i++) set(`res_tbn_${i}`, res_tbn[i - 1] ?? '');
+  for (let i = 1; i <= currentCyl; i++) set(`unit_val_${i}`, unit[i - 1] ?? '');
+
+  set('me_rh', rec.me_rh ?? '');
+  _wireFeedbackAvgListeners();
+  updateFeedbackAverages();
+}
+
+function fbCommitCurrent() {
+  if (!fbState.validIdxs.length || fbState.pos < 0) return;
+  const rawIdx = fbState.validIdxs[fbState.pos];
+  const rec = fbReadRecordFromInputs();
+  if (rec) fbState.records[rawIdx] = rec;
+}
+
+function fbRebuildFeedbackRows() {
+  feedback_rows = fbState.validIdxs.map(i => fbState.records[i]).filter(Boolean);
+  const pill = document.getElementById('fbCountPill');
+  if (pill) pill.textContent = `Rows: ${feedback_rows.length}`;
+  fbSetPill();
+}
+
+function fbRender() {
+  if (!fbState.validIdxs.length || fbState.pos < 0) { fbSetPill(); return; }
+  const rawIdx = fbState.validIdxs[fbState.pos];
+  fbWriteRecordToInputs(fbState.records[rawIdx]);
+  fbSetPill();
+  try { updateFeedbackAverages(); } catch(_) {}
+}
+
+
+function fbPrev() {
+  if (!fbState.validIdxs.length) return;
+  fbCommitCurrent();
+  if (fbState.pos > 0) fbState.pos -= 1;
+  fbRebuildFeedbackRows();
+  fbRender();
+}
+
+function fbNext() {
+  if (!fbState.validIdxs.length) return;
+  fbCommitCurrent();
+  if (fbState.pos < fbState.validIdxs.length - 1) fbState.pos += 1;
+  fbRebuildFeedbackRows();
+  fbRender();
+}
+
+    let scavenge_rows = [];
+    let me_sys_rows = [];
+    renderMeSysRows();
+
+    document.getElementById('parseFeedbackBtn').addEventListener('click', () => {
+    if (!currentCyl) return alert('Select a vessel first (cylinders needed).');
+
+    const rows = splitExcelRows(document.getElementById('feedbackPaste').value);
+
+    // Build records (preserve indices) and enable navigation through parsed rows
+    fbState.records = rows.map(feedbackValuesToRecord);
+    fbState.validIdxs = fbState.records
+      .map((r, i) => (r ? i : -1))
+      .filter(i => i >= 0);
+
+    fbState.pos = fbState.validIdxs.length ? (fbState.validIdxs.length - 1) : -1;
+
+    fbRebuildFeedbackRows();
+
+    if (!fbState.validIdxs.length) {
+        alert('No valid feedback rows parsed. Check cylinders + pasted columns.');
+        return;
+    }
+
+    // By default show the LAST parsed row (same as before)
+    fbRender();
+    });
+
+    document.getElementById('clearFeedbackBtn').addEventListener('click', () => {
+    document.getElementById('feedbackPaste').value = '';
+
+    feedback_rows = [];
+    fbState = { records: [], validIdxs: [], pos: -1 };
+    const pill = document.getElementById('fbCountPill');
+    if (pill) pill.textContent = 'Rows: 0';
+    fbSetPill();
+
+    // Clear reporting period averages
+    ['avg_feedrate','avg_fe_total','avg_res_bn'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+
+      [
+      'fb_date','me_load','me_rpm','avg_me_power','daily_cyl_oil_cons','cyl_oil_feed_rate',
+      'acc_factor','fuel_type','fuel_sulph','humidity','tbn_fed','pc_inlet','pc_outlet','amb_temp',
+      'tbn_scraped','me_lo_desludge','me_lo_temp','me_rh'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+    for (let i=1;i<=currentCyl;i++){
+        ['fe_mag','fe_cor','fe_tot','res_tbn','unit_val'].forEach(p => {
+        const el = document.getElementById(`${p}_${i}`); if (el) el.value = '';
+        });
+    }
+    });
+
+    document.getElementById('parseScavBtn').addEventListener('click', () => {
+    if (!currentCyl) return alert('Select a vessel first (cylinders needed).');
+
+    const rows = splitExcelRows(document.getElementById('scavPaste').value);
+    scavenge_rows = rows
+        .map(scavValuesToRecord)
+        .filter(Boolean);
+
+    document.getElementById('scavCountPill').textContent = `Rows: ${scavenge_rows.length}`;
+
+    if (!scavenge_rows.length) {
+        alert('No valid scavenge rows parsed. Check cylinders + pasted columns.');
+        return;
+    }
+
+    // Optional: populate form fields with the LAST parsed row for quick review
+    parseScavRow(rows[rows.length - 1]);
+    });
+
+
+    document.getElementById('clearScavBtn').addEventListener('click', () => {
+    document.getElementById('scavPaste').value = '';
+
+    scavenge_rows = [];
+    const pill = document.getElementById('scavCountPill');
+    if (pill) pill.textContent = 'Rows: 0';
+
+    ['scav_date','coat_type','scav_mfrh'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+    ['pr1','pr2','pr3','pr4'].forEach(pr => {
+        for (let c=1;c<=currentCyl;c++){
+        const el = document.getElementById(`ring_${pr}_${c}`); if (el) el.value = '';
+        }
+    });
+
+    for (let c=1;c<=currentCyl;c++){
+        const el = document.getElementById(`scav_unit_${c}`); if (el) el.value = '';
+    }
+
+});
+
+
+
+
+
+    // ----------------------------
+    // Feedback received datetime (Outlook -> YYYY-MM-DD-HH-MM)
+    // ----------------------------
+    function normalizeFeedbackReceivedToYYYYMMDDHHMM(input) {
+      if (input === null || input === undefined) return "";
+      let s = String(input).trim();
+      if (!s) return "";
+
+      // Already normalized: YYYY-MM-DD-HH-MM
+      if (/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/.test(s)) return s;
+
+      // Outlook typical: Mon 02-Mar-26 1:49 PM
+      // Weekday may be omitted depending on locale/settings.
+      const m = s.match(/^(?:[A-Za-z]{3}\s+)?(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s+(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+      if (!m) return "";
+
+      const day = parseInt(m[1], 10);
+      const monStr = (m[2] || "").toLowerCase();
+      const yearRaw = m[3];
+      let hour = parseInt(m[4], 10);
+      const minute = parseInt(m[5], 10);
+      const ampm = (m[6] || "").toLowerCase();
+
+      const monthMap = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+      const month = monthMap[monStr];
+      if (!month || !day || isNaN(hour) || isNaN(minute)) return "";
+
+      // year: 2-digit -> 20xx, else use as-is
+      let year = parseInt(yearRaw, 10);
+      if (yearRaw.length === 2) year += 2000;
+
+      // 12h -> 24h
+      if (ampm === "pm" && hour < 12) hour += 12;
+      if (ampm === "am" && hour === 12) hour = 0;
+
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${year}-${pad(month)}-${pad(day)}-${pad(hour)}-${pad(minute)}`;
+    }
+
+    function syncFeedbackReceivedFields() {
+      const el = document.getElementById("feedback_received_dt");
+      const rawEl = document.getElementById("feedback_received_raw");
+      if (!el || !rawEl) return { ok: true, norm: "", raw: "" };
+
+      const raw = String(el.value || "").trim();
+      if (!raw) {
+        rawEl.value = "";
+        return { ok: false, norm: "", raw: "" };
+      }
+
+      const norm = normalizeFeedbackReceivedToYYYYMMDDHHMM(raw);
+
+      // If user typed/pasted Outlook string, keep it as raw and show normalized in the input.
+      if (norm) {
+        rawEl.value = raw;
+        el.value = norm;
+        return { ok: true, norm, raw };
+      }
+
+      // If it couldn't be parsed, keep whatever user typed and fail validation.
+      rawEl.value = raw;
+      return { ok: false, norm: "", raw };
+    }
+
+    // Submit
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const initials = document.getElementById("userInitials").value;
+
+  if (!initials) {
+      alert("You must select your initials before submitting.");
+      return;
+  }
+
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData.entries());
+
+  // ✅ Now it exists — safe to assign
+  data.submitted_by = initials;
+
+
+  // --- KPI: Feedback received from vessel (mandatory) ---
+  const fr = syncFeedbackReceivedFields();
+  if (!fr.ok) {
+    alert("Feedback received from vessel is required, and must be a valid date/time (e.g. Mon 02-Mar-26 1:49 PM).");
+    return;
+  }
+
+  // Ensure both raw + normalized are present in payload
+  data.feedback_received_dt = document.getElementById("feedback_received_dt").value;
+  data.feedback_received_raw = document.getElementById("feedback_received_raw").value || data.feedback_received_dt;
+
+  // Save KPI metadata (kpi_data) before saving the rest
+  const kpiRes = await fetch('/kpi-submit', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      register_id: document.getElementById('registerId')?.value || '',
+      vessel_name: document.getElementById('vesselInput')?.value || '',
+      imo_no: document.getElementById('imoNo')?.value || '',
+      feedback_received_dt: data.feedback_received_dt,
+      feedback_received_raw: data.feedback_received_raw
+    })
+  });
+
+  const kpiOut = await kpiRes.json();
+  if (!kpiRes.ok) {
+    alert(kpiOut.error || "Error saving KPI data");
+    return;
+  }
+
+  // Normalize lab scrapedown date (allow empty)
+  if ('lab_scrapedown_date' in data) {
+    data.lab_scrapedown_date = normalizeDateToISO(data.lab_scrapedown_date);
+  }
+
+  // Add structured per-cylinder arrays
+  data.per_cylinder = {
+    fe_mag: [],
+    fe_cor: [],
+    fe_tot: [],
+    res_tbn: [],
+    unit: [],
+    rings: { pr1:[], pr2:[], pr3:[], pr4:[] },
+    scav_unit: []
+  };
+
+  for (let i=1;i<=currentCyl;i++){
+    data.per_cylinder.fe_mag.push(data[`fe_mag_${i}`] ?? '');
+    data.per_cylinder.fe_cor.push(data[`fe_cor_${i}`] ?? '');
+    data.per_cylinder.fe_tot.push(data[`fe_tot_${i}`] ?? '');
+    data.per_cylinder.res_tbn.push(data[`res_tbn_${i}`] ?? '');
+    data.per_cylinder.unit.push(data[`unit_val_${i}`] ?? '');
+
+    ['pr1','pr2','pr3','pr4'].forEach(pr => {
+      data.per_cylinder.rings[pr].push(data[`ring_${pr}_${i}`] ?? '');
+    });
+
+    data.per_cylinder.scav_unit.push(data[`scav_unit_${i}`] ?? '');
+  }
+
+  Object.keys(data).forEach(k => {
+    if (/^(fe_mag|fe_cor|fe_tot|res_tbn|unit_val|scav_unit)_\d+$/.test(k)) delete data[k];
+    if (/^ring_(pr1|pr2|pr3|pr4)_\d+$/.test(k)) delete data[k];
+  });
+
+  // Feedback report: commit currently visible parsed row (if any) before submit
+  try { fbCommitCurrent(); fbRebuildFeedbackRows(); } catch(_) {}
+
+  data.feedback_rows = feedback_rows;
+  data.scavenge_rows = scavenge_rows;
+
+  // ME SYS: ensure the currently visible row is committed before submit
+  try {
+    if (typeof commitCurrentMeSysRow === 'function' && typeof meSysIndex !== 'undefined' && meSysIndex >= 0) {
+      commitCurrentMeSysRow();
+    }
+    // If user typed ME SYS values but never clicked "Add row", make sure we still send it as a single-row array.
+    if ((!Array.isArray(me_sys_rows) || me_sys_rows.length === 0) && typeof snapshotMeSysInputs === 'function') {
+      const snap = snapshotMeSysInputs();
+      if (snap) {
+        me_sys_rows = [snap];
+      }
+    }
+  } catch (e) {
+    // If anything goes wrong, fall back to backend single-row mode via top-level fields.
+  }
+
+  data.me_sys_rows = (window.me_sys_rows ?? me_sys_rows ?? []);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const resp = await fetch('/register-feedback-submit', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    const out = await resp.json();
+    if (!resp.ok) {
+      alert(out.error || 'Submit failed');
+      return;
+    }
+
+    alert('Saved OK');
+
+    // ✅ refresh submissions immediately (no page reload)
+    if (typeof loadSubmissionList === 'function') {
+      await loadSubmissionList();
+    }
+
+      // Prepare next registration
+    setRegisterId();
+
+} finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+});
+
+    // Init
+    loadVessels();
+
+
+function formatDateTime(isoStr) {
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d)) return isoStr;
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) {
+        return isoStr;
+    }
+}
+
+async function loadSubmissionList() {
+    const res = await fetch('/submission-list');
+    const data = await res.json();
+
+    const tbody = document.querySelector('#feedbackTable tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td>${item.created_by || '-'}</td>
+            <td>${item.vessel_name}</td>
+            <td>${item.submission_type || '-'}</td>
+            <td>${item.created_at ? formatDateTime(item.created_at) : '-'}</td>
+            <td style="font-family: monospace; font-size:0.75rem;">
+                ${item.register_id}
+            </td>
+            <td>
+                <button type="button" class="danger" onclick="withdrawSubmission(event, '${item.register_id}', '${item.submission_type || ''}')">
+                    X
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function withdrawSubmission(ev, register_id, submission_type) {
+    if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+    const initials = document.getElementById("userInitials").value;
+
+    if (!initials) {
+        alert("Select your initials before withdrawing.");
+        return;
+    }
+
+    if (!confirm("Are you sure you want to withdraw this entry?"))
+        return;
+
+    const res = await fetch('/withdraw-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            register_id,
+            submission_type,
+            deleted_by: initials
+        })
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+        alert("Withdrawn");
+        loadSubmissionList();
+    } else {
+        alert(result.error || "Error");
+    }
+}
+
+
+
+function clearAllFields() {
+  // keep initials
+  const initialsEl = document.getElementById('userInitials');
+  const initialsVal = initialsEl ? initialsEl.value : '';
+
+  // reset all form fields
+  const form = document.getElementById('regForm');
+  if (form) form.reset();
+
+  // restore initials
+  if (initialsEl) initialsEl.value = initialsVal;
+
+  // clear vessel-dependent computed fields and grids
+  const imoEl = document.getElementById('imoNo');
+  if (imoEl) imoEl.value = '';
+
+  // reset cyl to 0 + rebuild empty grids
+  setCylinderCount(0);
+
+  // clear bulk queues + pills
+  feedback_rows = [];
+  scavenge_rows = [];
+  me_sys_rows = [];
+
+  const fbPill = document.getElementById('fbCountPill');
+  if (fbPill) fbPill.textContent = 'Rows: 0';
+
+  const scPill = document.getElementById('scavCountPill');
+  if (scPill) scPill.textContent = 'Rows: 0';
+
+  if (typeof updateMeSysPill === 'function') updateMeSysPill();
+
+  // clear paste boxes explicitly (reset() usually does, but be safe)
+  const fbPaste = document.getElementById('feedbackPaste');
+  if (fbPaste) fbPaste.value = '';
+
+  const scPaste = document.getElementById('scavPaste');
+  if (scPaste) scPaste.value = '';
+
+  const sysPaste = document.getElementById('sysPaste');
+  if (sysPaste) sysPaste.value = '';
+
+  // clear ring host + grids (since cyl count is now 0)
+  const ringHost = document.getElementById('ringTable');
+  if (ringHost) ringHost.innerHTML = '';
+
+  ['feMagGrid','feCorGrid','feTotGrid','resTbnGrid','unitGrid','scavUnitGrid'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+
+  // clear reporting period averages
+  ['avg_feedrate','avg_fe_total','avg_res_bn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // reset feedback parsed-record navigation state
+  if (typeof fbState !== 'undefined') {
+    fbState.records = [];
+    fbState.validIdxs = [];
+    fbState.pos = -1;
+    try { fbSetPill(); } catch(_) {}
+  }
+
+  // IMPORTANT: do NOT clear registerId, regenerate it
+  setRegisterId();
+}
+
+const clearAllTop = document.getElementById('clearAllTop');
+if (clearAllTop) clearAllTop.addEventListener('click', clearAllFields);
+
+const clearAllBottom = document.getElementById('clearAllBottom');
+if (clearAllBottom) clearAllBottom.addEventListener('click', clearAllFields);
+
+document.addEventListener('DOMContentLoaded', loadSubmissionList);
+  
+/* ===================== ME system oil (robust nav, no parsing) ===================== */
+(function(){
+  const SECTION_ID = 'section-me_sys_data';
+  const FIELD_IDS = ['sys_date','visc40','visc100','base_number','topup_volume','vanadium','pq_index','oil_on_label','iso_code','pc4','pc6','pc14'];
+
+  // Always start with Row 1 (even if blank)
+  const state = window.__ME_SYS_STATE || (window.__ME_SYS_STATE = { rows: [{}], idx: 0 });
+
+  function el(id){ return document.getElementById(id); }
+
+  function readInputs(){
+    const out = {};
+    let any = false;
+    for (const id of FIELD_IDS){
+      const e = el(id);
+      if (!e) continue;
+      const v = (e.value ?? '').toString();
+      out[id] = v;
+      if (v.trim() !== '') any = true;
+    }
+    return any ? out : {};
+  }
+
+  function writeInputs(row){
+    for (const id of FIELD_IDS){
+      const e = el(id);
+      if (!e) continue;
+      e.value = row?.[id] ?? '';
+    }
+  }
+
+  function clearInputs(){ writeInputs({}); }
+
+  function isRowEmpty(row){
+    if (!row) return true;
+    return FIELD_IDS.every(id => ((row[id] ?? '').toString().trim() === ''));
+  }
+
+  function ensureRow1(){
+    if (!Array.isArray(state.rows) || state.rows.length === 0){
+      state.rows = [{}];
+      state.idx = 0;
+    }
+    if (typeof state.idx !== 'number' || state.idx < 0) state.idx = 0;
+    if (state.idx >= state.rows.length) state.idx = state.rows.length - 1;
+  }
+
+  function updateUI(){
+    // Keep the existing global me_sys_rows in sync for submit/debug
+    try { window.me_sys_rows = state.rows; } catch(_) {}
+
+    const nav = el('sysNavPill');
+    const cnt = el('sysCountPill');
+
+    ensureRow1();
+
+    if (cnt) cnt.textContent = `Rows: ${state.rows.length}`;
+    if (nav) nav.textContent = `Row: ${state.idx + 1} / ${state.rows.length}`;
+
+    const prev = el('sysPrevBtn');
+    const next = el('sysNextBtn');
+    if (prev) prev.disabled = !(state.idx > 0);
+    if (next) next.disabled = !(state.idx < state.rows.length - 1);
+  }
+
+  function commitCurrent(){
+    ensureRow1();
+    state.rows[state.idx] = readInputs(); // may be {}
+  }
+
+  window.meSysAddRow = function(){
+    // Row 1 is the currently visible row. Add row always creates Row 2/3/... and jumps to it.
+    commitCurrent();
+    state.rows.push({});
+    state.idx = state.rows.length - 1;
+    clearInputs();           // show the new row as blank
+    updateUI();
+  };
+
+  window.meSysPrev = function(){
+    ensureRow1();
+    if (state.idx <= 0) return;
+    commitCurrent();
+    state.idx -= 1;
+    writeInputs(state.rows[state.idx] || {});
+    updateUI();
+  };
+
+  window.meSysNext = function(){
+    ensureRow1();
+    if (state.idx >= state.rows.length - 1) return;
+    commitCurrent();
+    state.idx += 1;
+    writeInputs(state.rows[state.idx] || {});
+    updateUI();
+  };
+
+  window.meSysClear = function(){
+    state.rows = [{}];
+    state.idx = 0;
+    clearInputs();
+    updateUI();
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // If something pre-populated window.me_sys_rows, use it. Otherwise start with Row 1 blank.
+    if (Array.isArray(window.me_sys_rows) && window.me_sys_rows.length){
+      state.rows = window.me_sys_rows.map(r => r || {});
+      state.idx = 0;
+      writeInputs(state.rows[0] || {});
+    } else {
+      state.rows = [{}];
+      state.idx = 0;
+      clearInputs();
+    }
+    updateUI();
+  });
+
+  // Autosave + only submit non-empty rows
+  const form = document.getElementById('regForm');
+  if (form){
+    form.addEventListener('submit', () => {
+      commitCurrent();
+      const cleaned = (state.rows || []).filter(r => !isRowEmpty(r));
+      me_sys_rows = cleaned;
+      window.me_sys_rows = cleaned;
+    }, true);
+  }
+})();
+
+
+
+// -----------------------------------------
+// Observation dropdown helper (if present)
+// -----------------------------------------
+function setObsWithAverage(textareaId, baseText, avgLine) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  if (!baseText) { ta.value = ''; return; }
+  ta.value = String(baseText) + "\n\n" + String(avgLine);
+}
+
+</script>
+</body>
+</html>

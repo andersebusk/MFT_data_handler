@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDF Generator UI</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { display: flex; gap: 40px; flex-wrap: wrap; }
+    .section { flex: 1 1 300px; max-width: 600px; }
+    h2 { margin-top: 0; }
+    label { display: block; margin: 6px 0 4px; font-size: 0.9em; }
+    input, select, textarea { width: 100%; padding: 6px; box-sizing: border-box; }
+    button {
+        margin: -40px auto;
+        padding: 10px 20px;
+        background-color: #A9D18E;
+        color: black;
+        border: none;
+        border-radius: 4px;
+        display: block;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    .dropzone {
+      border: 2px dashed #ccc;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .dropzone img {
+      max-width: 100%;
+    }
+    select {
+      margin-bottom: 5px;
+    }
+    textarea {
+      width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
+    .topbar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    }
+    .topbar a {
+      text-decoration: none;
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: black;
+    }
+    .topbar a:hover { background: #f6f6f6; }
+    .small { font-size: 0.9em; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="/">Dashboard</a>
+    <a href="/register-feedback">Register Feedback</a>
+  </div>
+
+  <form id="pdfForm">
+    <!-- General information -->
+    <div class="section">
+      <h2>General information</h2>
+
+      <label>Link to feedback registration:
+        <div class="small">Select the feedback registration this report belongs to (no manual register ID).</div>
+        <select id="regSelect" required>
+          <option value="">-- Select registration --</option>
+        </select>
+      </label>
+
+      <input type="hidden" name="register_id" id="register_id">
+
+
+      <label>Vessel Name:
+        <input list="vessels" name="vessel_name" id="vesselInput" required>
+        <datalist id="vessels"></datalist>
+    </label>
+      <label>Chief Engineer:<input type="text" name="C/Eng" id="C/Eng" /></label>
+      <label>Shipowner:<input type="text" name="customer" id="customer" /></label>
+      <label>IMO Number:<input type="number" name="imo_no" id="imo_no" /></label>
+      <label>Engine Manufacturer:<input type="text" name="en_manu" id="en_manu" /></label>
+      <label>Engine Model:<input type="text" name="en_mod" id="en_mod" /></label>
+      <label>MCR Output:<input type="number" name="mcr_out" id="mcr_out" /></label>
+      <label>Filter/Purifier:<input type="text" name="fil_pur" id="fil_pur" /></label>
+    </div>
+
+    <!-- Report Pictures -->
+    <div class="section">
+      <h2>Report Pictures</h2>
+      <div style="background-color: #f0f8ff; border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
+        <strong>Tip:</strong> To insert a screenshot:<br>
+        1. Take a screenshot using <kbd>Windows + Shift + S</kbd>.<br>
+        2. Click on the desired drop area below.<br>
+        3. Press <kbd>Ctrl + V</kbd> to paste directly.
+      </div>
+
+      <!-- Dropzones for each image -->
+      <label>Fe/TBN Zones:</label>
+      <div id="fe_tbn_dropzone" class="dropzone">Paste or drop image here</div>
+      <input type="hidden" name="fe_tbn_image_url" id="fe_tbn_image_url">
+
+      <label>TBN Fed to engine vs Res. TBN:</label>
+      <div id="tbn_fed_dropzone" class="dropzone">Paste or drop image here</div>
+      <input type="hidden" name="tbn_fed_image_url" id="tbn_fed_image_url">
+
+      <label>Fe total per cylinder & ME Load:</label>
+      <div id="fe_tot_load_dropzone" class="dropzone">Paste or drop image here</div>
+      <input type="hidden" name="fe_tot_load_image_url" id="fe_tot_load_image_url">
+
+      <label>Feedrate, load and Fe total:</label>
+      <div id="feedrate_load_fe_dropzone" class="dropzone">Paste or drop image here</div>
+      <input type="hidden" name="feedrate_load_fe_image_url" id="feedrate_load_fe_image_url">
+    </div>
+
+    <!-- Report Details -->
+    <div class="section">
+      <h2>Report Details</h2>
+      <label>Date Of Report:<input type="date" name="date" required /></label>
+      <label>Engineer Name:
+        <select name="eng_name" required>
+          <option value="">-- Select Engineer --</option>
+          <option value="Sebastian Bøge">Sebastian Bøge</option>
+          <option value="Andreas Johansen">Andreas Johansen</option>
+          <option value="William Stabell Benn">William Benn</option>
+          <option value="Thomas Andersen">Thomas Andersen</option>
+          <option value="Thomas Lunde-Christensen">Thomas Lunde-Christensen</option>
+        </select>
+      </label>
+      <label>Report Result Status:
+        <select name="status" required>
+          <option value="">-- Select Status --</option>
+          <option value="Normal">Normal</option>
+          <option value="Abnormal">Abnormal</option>
+          <option value="Alert">Alert</option>
+        </select>
+      </label>
+      <label>Action taken by vessel since last report:
+        <select name="action_taken_code">
+          <option value="">-- Select status --</option>
+          <option value="1">Recommendation has been satisfied</option>
+          <option value="2">Unchanged</option>
+          <option value="3">Recommendation has not been satisfied</option>
+        </select>
+      </label>
+      <label>Sample Period:<input type="text" name="sample_per" /></label>
+      <label>Latest Onboard Sample Date:<input type="date" name="on_sample_date" /></label>
+      <label>Latest Laboratory Sample Date:<input type="date" name="lab_sample_date" /></label>
+      <label>Average Load In Sample Period [%]:<input type="number" name="avg_load" /></label>
+      <label>FO Sulphur Content [% m/m]:<input type="number" step="any" name="fo_sulph" /></label>
+      <label>CLO BN [mgKOH/g]:<input type="number" name="clo_bn" /></label>
+      <label>Avg. CLO Consumption / 24hrs [L]:<input type="number" name="clo_24hrs" /></label>
+      <label>ACC Factor:<input type="number" step="any" name="acc_fac" /></label>
+      <label>Feed-rate Before BOB:<input type="number" step="any" name="feed_before" /></label>
+      <label>Latest Feed-rate:<input type="number" step="any" name="feed_rep" /></label>
+    </div>
+
+    <!-- Report summary -->
+    <div class="section">
+      <h2>Report Summary</h2>
+
+      <label>Residual BN observation:
+        <select onchange="document.getElementById('res_bn_obs').value = this.value;">
+          <option value="">-- Select Option --</option>
+          <option value="Residual BN is within the normal range and aligns with OEM guidelines.">Residual BN is within the normal range and aligns with OEM guidelines.</option>
+          <option value="Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.">Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.</option>
+          <option value="Residual BN is slightly below average at around {bn} mgKOH/g, indicating acceptable but reduced BN reserve.">Residual BN is slightly below average at around {bn} mgKOH/g, indicating acceptable but reduced BN reserve.</option>
+          <option value="Residual BN is reported at critically low levels despite high Sulphur fuel use, posing a risk of corrosive wear.">Residual BN is reported at critically low levels despite high Sulphur fuel use, posing a risk of corrosive wear.</option>
+        </select>
+        <textarea name="res_bn_obs" id="res_bn_obs" style="min-height: 100px;" ></textarea>
+      </label>
+
+      <label>Fe total observation:
+        <select onchange="document.getElementById('fe_tot_obs').value = this.value;">
+          <option value="">-- Select Option --</option>
+          <option value="Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.">Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.</option>
+          <option value="Fe Total levels are slightly elevated but remain within acceptable limits.">Fe Total levels are slightly elevated but remain within acceptable limits.</option>
+          <option value="Fe Total levels are slightly below average but remain within the normal operational range.">Fe Total levels are slightly below average but remain within the normal operational range.</option>
+          <option value="Fe Total levels are elevated above normal limits, indicating increased wear and requiring further investigation.">Fe Total levels are elevated above normal limits, indicating increased wear and requiring further investigation.</option>
+        </select>
+        <textarea name="fe_tot_obs" id="fe_tot_obs" style="min-height: 100px;" ></textarea>
+      </label>
+
+      <label>Feedrate observation:
+        <select onchange="document.getElementById('feed_obs').value = this.value;">
+          <option value="">-- Select Option --</option>
+          <option value="Cylinder oil feedrate is within the target range, indicating optimal lubrication.">Cylinder oil feedrate is within the target range, indicating optimal lubrication.</option>
+          <option value="Cylinder oil feedrate is slightly elevated but remains within acceptable operational limits.">Cylinder oil feedrate is slightly elevated but remains within acceptable operational limits.</option>
+          <option value="Cylinder oil feedrate is slightly below the target range but remains acceptable.">Cylinder oil feedrate is slightly below the target range but remains acceptable.</option>
+          <option value="Cylinder oil feedrate is high and exceeds recommended values, requiring adjustment to avoid excessive oil consumption.">Cylinder oil feedrate is high and exceeds recommended values, requiring adjustment to avoid excessive oil consumption.</option>
+        </select>
+        <textarea name="feed_obs" id="feed_obs" style="min-height: 100px;" ></textarea>
+      </label>
+
+      <label>Additional comment:
+        <textarea name="add_com_obs" style="min-height: 100px;"></textarea>
+      </label>
+
+      <label>We suggest:
+        <select onchange="document.getElementById('we_suggest').value = this.value;">
+          <option value="">-- Select Recommendation --</option>
+          <option value="Maintain the current cylinder oil feedrate as it is for now and continue monitoring Fe levels and residual BN.">Maintain the current cylinder oil feedrate as it is for now and continue monitoring Fe levels and residual BN.</option>
+          <option value="Suggest reducing cylinder oil feedrate in steps of 0.05 g/kWh, taking onboard scrape-down samples 24-48 hours after each adjustment to ensure wear rates and residual BN remain within acceptable limits.">Suggest reducing cylinder oil feedrate in steps of 0.05 g/kWh, taking onboard scrape-down samples 24-48 hours after each adjustment to ensure wear rates and residual BN remain within acceptable limits.</option>
+          <option value="Recommend keeping the feedrate unchanged until further Fe data or operational clarifications are available.">Recommend keeping the feedrate unchanged until further Fe data or operational clarifications are available.</option>
+          <option value="Suggest maintaining the current feedrate but increasing the BN of the blended cylinder oil to improve residual BN levels.">Suggest maintaining the current feedrate but increasing the BN of the blended cylinder oil to improve residual BN levels.</option>
+          <option value="Recommend using the BOB system to blend down to a lower BN and taking onboard scrape-down samples 24-48 hours after adjustment.">Recommend using the BOB system to blend down to a lower BN and taking onboard scrape-down samples 24-48 hours after adjustment.</option>
+          <option value="If feedrate is reduced, we recommend implementing incremental reductions of 0.05 g/kWh and conducting onboard scrape-down sampling after each step to verify acceptable wear and BN levels before proceeding further.">If feedrate is reduced, we recommend implementing incremental reductions of 0.05 g/kWh and conducting onboard scrape-down sampling after each step to verify acceptable wear and BN levels before proceeding further.</option>
+          <option value="Given current wear rates and residual BN levels, suggest evaluating the possibility of reducing cylinder oil feedrate while ensuring all company guidelines are followed.">Given current wear rates and residual BN levels, suggest evaluating the possibility of reducing cylinder oil feedrate while ensuring all company guidelines are followed.</option>
+        </select>
+        <textarea name="we_suggest" id="we_suggest" style="min-height: 100px;" ></textarea>
+      </label>
+
+      <label>Additional comments:
+        <textarea name="add_com_sugg" style="min-height: 100px;"></textarea>
+      </label>
+    </div>
+
+    <div style="width: 100%;">
+      <button type="submit">Generate PDF</button>
+    </div>
+  </form>
+
+  <script>
+    let vessels = [];
+
+    async function loadVessels() {
+      const res = await fetch('/vessels');
+      vessels = await res.json();
+
+      const dataList = document.getElementById('vessels');
+      vessels.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.vessel_name;
+        dataList.appendChild(opt);
+      });
+    }
+
+    // Handle vessel autofill
+    document.getElementById('vesselInput').addEventListener('input', function() {
+      const selected = vessels.find(v => v.vessel_name === this.value);
+
+      document.getElementById('customer').value = selected?.customer || '';
+      document.getElementById('imo_no').value = selected?.imo_no || '';
+      document.getElementById('en_manu').value = selected?.en_manu || '';
+      document.getElementById('en_mod').value = selected?.en_mod || '';
+      document.getElementById('mcr_out').value = selected?.mcr_out || '';
+      document.getElementById('fil_pur').value = selected?.fil_pur || '';
+    });
+
+    // Drop/paste image handling
+    ['fe_tbn', 'tbn_fed', 'fe_tot_load', 'feedrate_load_fe'].forEach(field => {
+      const dropzone = document.getElementById(`${field}_dropzone`);
+      const hiddenInput = document.getElementById(`${field}_image_url`);
+
+      dropzone.addEventListener('paste', handlePaste);
+      dropzone.addEventListener('drop', handleDrop);
+      dropzone.addEventListener('dragover', e => e.preventDefault());
+
+      function handlePaste(e) {
+        const items = e.clipboardData.items;
+        processItems(items);
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        const items = e.dataTransfer.items;
+        processItems(items);
+      }
+
+      async function processItems(items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.style.maxWidth = "100%";
+
+            // Create remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = 'Remove';
+            removeBtn.style.display = 'block';
+            removeBtn.style.margin = '10px auto';
+            removeBtn.style.background = '#f44336';
+            removeBtn.style.color = 'white';
+            removeBtn.style.border = 'none';
+            removeBtn.style.padding = '6px 12px';
+            removeBtn.style.borderRadius = '4px';
+            removeBtn.style.cursor = 'pointer';
+
+            removeBtn.addEventListener('click', () => {
+              dropzone.innerHTML = 'Paste or drop image here';
+              hiddenInput.value = '';
+            });
+
+            dropzone.innerHTML = '';
+            dropzone.appendChild(img);
+            dropzone.appendChild(removeBtn);
+
+            // ✅ Upload file to backend S3 endpoint
+            const s3Upload = new FormData();
+            s3Upload.append('image', file);
+
+            const uploadResponse = await fetch('/upload-image', {
+              method: 'POST',
+              body: s3Upload
+            });
+
+            const uploadResult = await uploadResponse.json();
+
+            if (uploadResult.url) {
+              hiddenInput.value = uploadResult.url;
+            } else {
+              alert('Image upload failed');
+            }
+
+            break; // exit after first image processed
+          }
+        }
+      }
+    });
+
+    // Submit form
+    // Submit form
+document.getElementById('pdfForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    // 1) Save KPI metadata to Postgres
+    const kpiRes = await fetch('/kpi-submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        register_id: document.getElementById('register_id')?.value || '',
+        vessel_name: document.getElementById('vesselInput')?.value || '',
+        imo_no: document.getElementById('imo_no')?.value || '',
+        action_taken_code: data.action_taken_code || ""
+      })
+    });
+
+    const kpiResult = await kpiRes.json();
+    if (!kpiRes.ok) {
+      alert('Error saving KPI data: ' + (kpiResult.error || 'Unknown error'));
+      return; // stop here so you don’t generate a PDF without logging KPI
+    }
+
+    // 2) Generate PDF (existing behavior)
+    const response = await fetch('/generate-pdf', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    if (result.pdfUrl) window.open(result.pdfUrl, '_blank');
+    else alert('Error generating PDF');
+  });
+
+
+    async function loadRegistrations() {
+      try {
+        const res = await fetch('/feedback-registrations');
+        const rows = await res.json();
+        const sel = document.getElementById('regSelect');
+        if (!sel) return;
+
+        sel.innerHTML = '<option value="">-- Select registration --</option>';
+
+        (rows || []).forEach(r => {
+          const created = r.created_at ? new Date(r.created_at).toISOString().slice(0,16).replace('T',' ') : '';
+          const recv = r.feedback_received_at ? 'Received ✔' : 'Received ✖';
+          const rep  = r.report_generated_at ? 'Report ✔' : 'Report ✖';
+
+          const opt = document.createElement('option');
+          opt.value = r.register_id;
+          opt.textContent = `${r.vessel_name} | IMO ${r.imo_no} | ${created} | ${recv} | ${rep}`;
+          opt.dataset.vessel = r.vessel_name || '';
+          opt.dataset.imo = r.imo_no || '';
+          sel.appendChild(opt);
+        });
+
+        sel.addEventListener('change', () => {
+          const o = sel.options[sel.selectedIndex];
+          const rid = sel.value || '';
+          const hid = document.getElementById('register_id');
+          if (hid) hid.value = rid;
+
+          // Optional: auto-fill vessel/imo to match the selected registration
+          if (o && o.dataset) {
+            const v = o.dataset.vessel || '';
+            const imo = o.dataset.imo || '';
+            const vesselInput = document.getElementById('vesselInput');
+            const imoInput = document.getElementById('imo_no');
+            if (vesselInput && v) vesselInput.value = v;
+            if (imoInput && imo) imoInput.value = imo;
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to load registrations', err);
+      }
+    }
+
+    loadRegistrations();
+    loadVessels();
+  </script>
+</body>
+</html>
