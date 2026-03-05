@@ -38,8 +38,8 @@ def upload_image():
         )
         return jsonify({"url": presigned_url})
     except Exception as e:
-        print("S3 upload error:", e)
-        return jsonify({"error": "Upload failed"}), 500
+        print("S3 upload error:", repr(e))
+        return jsonify({"error": f"Upload failed: {e}"}), 500
 
 @bp.route("/vessels", methods=["GET"])
 @requires_auth
