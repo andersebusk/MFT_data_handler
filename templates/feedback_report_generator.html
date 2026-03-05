@@ -366,6 +366,12 @@ document.getElementById('pdfForm').addEventListener('submit', async function(e) 
       return; // stop here so you don’t generate a PDF without logging KPI
     }
 
+    if (kpiResult && kpiResult.register_id) {
+      const hid = document.getElementById('register_id');
+      if (hid && !hid.value) hid.value = kpiResult.register_id;
+      data.register_id = hid?.value || data.register_id;
+    }
+
     // 2) Generate PDF (existing behavior)
     const response = await fetch('/generate-pdf', {
       method: 'POST',
