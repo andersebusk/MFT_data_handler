@@ -837,6 +837,14 @@ def withdraw_submission():
                     deleted_by = %s
                 where register_id = %s
             """, (deleted_by, register_id))
+                # soft-delete KPI row for same register_id
+            cur.execute("""
+                update public.kpi_data
+                set is_deleted = true,
+                    deleted_at = now(),
+                    deleted_by = %s
+                where register_id = %s
+            """, (deleted_by, register_id))
         elif submission_type == "scavenge":
             cur.execute("""
                 update public.scavenge_data

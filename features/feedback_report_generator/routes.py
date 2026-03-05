@@ -65,7 +65,10 @@ def feedback_registrations():
             FROM public.feedback_data f
             LEFT JOIN public.kpi_data k
               ON k.register_id = f.register_id
-            WHERE f.register_id IS NOT NULL AND f.register_id <> ''
+            WHERE f.register_id IS NOT NULL
+            AND f.register_id <> ''
+            AND f.is_deleted = false
+            AND (k.is_deleted IS NULL OR k.is_deleted = false)
             GROUP BY f.register_id, f.vessel_name, f.imo_no, k.feedback_received_at, k.report_generated_at
             ORDER BY MAX(f.created_at) DESC
             LIMIT 50
