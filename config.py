@@ -17,10 +17,10 @@ PDFGENERATOR_TEMPLATE_ID = os.environ.get("PDFGENERATOR_TEMPLATE_ID")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Vessel master data (Excel)
-VESSEL_EXCEL_FILE = os.environ.get("VESSEL_EXCEL_FILE", "Legacy data vessels.xlsx")
+VESSEL_EXCEL_FILE = os.environ.get("VESSEL_EXCEL_FILE")
 
 # S3 for images
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "feedbackreportimages")
-AWS_REGION = os.environ.get("AWS_REGION", "eu-north-1")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+AWS_REGION = os.environ.get("AWS_REGION")
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")

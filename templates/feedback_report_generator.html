@@ -167,7 +167,7 @@
       <h2>Report Summary</h2>
 
       <label>Residual BN observation:
-        <select onchange="document.getElementById('res_bn_obs').value = this.value;">
+        <select onchange="setObsWithAverage('res_bn_obs', this.value, 'Reporting period average: [mgKOH/g]');">
           <option value="">-- Select Option --</option>
           <option value="Residual BN is within the normal range and aligns with OEM guidelines.">Residual BN is within the normal range and aligns with OEM guidelines.</option>
           <option value="Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.">Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.</option>
@@ -178,7 +178,7 @@
       </label>
 
       <label>Fe total observation:
-        <select onchange="document.getElementById('fe_tot_obs').value = this.value;">
+        <select onchange="setObsWithAverage('fe_tot_obs', this.value, 'Reporting period average: [ppm]');">
           <option value="">-- Select Option --</option>
           <option value="Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.">Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.</option>
           <option value="Fe Total levels are slightly elevated but remain within acceptable limits.">Fe Total levels are slightly elevated but remain within acceptable limits.</option>
@@ -329,6 +329,20 @@
 
     // Submit form
     // Submit form
+
+    // -------------------------------
+    // Observation helper (adds avg line)
+    // -------------------------------
+    function setObsWithAverage(textareaId, selectedText, avgLine) {
+      const ta = document.getElementById(textareaId);
+      if (!ta) return;
+      const base = (selectedText || "").toString().trim();
+      const extra = (avgLine || "").toString().trim();
+      if (!base && !extra) { ta.value = ""; return; }
+      if (base && extra) ta.value = base + "\n\n" + extra;
+      else ta.value = base || extra;
+    }
+
 document.getElementById('pdfForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -375,6 +389,7 @@ document.getElementById('pdfForm').addEventListener('submit', async function(e) 
         sel.innerHTML = '<option value="">-- Select registration --</option>';
 
         (rows || []).forEach(r => {
+          if (!r || !r.feedback_received_at) return;
           const created = r.created_at ? new Date(r.created_at).toISOString().slice(0,16).replace('T',' ') : '';
           const recv = r.feedback_received_at ? 'Received ✔' : 'Received ✖';
           const rep  = r.report_generated_at ? 'Report ✔' : 'Report ✖';
@@ -401,6 +416,10 @@ document.getElementById('pdfForm').addEventListener('submit', async function(e) 
             const imoInput = document.getElementById('imo_no');
             if (vesselInput && v) vesselInput.value = v;
             if (imoInput && imo) imoInput.value = imo;
+            // Trigger legacy vessel autofill for the rest of the fields
+            if (vesselInput && v) {
+              vesselInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
           }
         });
       } catch (err) {

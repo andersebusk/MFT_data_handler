@@ -4,6 +4,9 @@ from common.auth import requires_auth
 from common.s3 import get_s3_client, get_bucket_name
 from common.vessels import load_vessels
 from common.pdfgen import generate_pdf
+import psycopg2.extras
+
+from common.db import get_db_connection
 
 bp = Blueprint("feedback_report_generator", __name__)
 
@@ -42,6 +45,40 @@ def upload_image():
 @requires_auth
 def get_vessels():
     return jsonify(load_vessels())
+
+@bp.route("/feedback-registrations", methods=["GET"])
+@requires_auth
+def feedback_registrations():
+    """Return latest feedback registrations + KPI status so the generator can link by register_id."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+              f.register_id,
+              f.vessel_name,
+              f.imo_no,
+              MAX(f.created_at) AS created_at,
+              k.feedback_received_at,
+              k.report_generated_at
+            FROM public.feedback_data f
+            LEFT JOIN public.kpi_data k
+              ON k.register_id = f.register_id
+            WHERE f.register_id IS NOT NULL AND f.register_id <> ''
+            GROUP BY f.register_id, f.vessel_name, f.imo_no, k.feedback_received_at, k.report_generated_at
+            ORDER BY MAX(f.created_at) DESC
+            LIMIT 50
+        """)
+
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(rows)
+
+    except Exception as e:
+        print("feedback-registrations ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/generate-pdf", methods=["POST"])
 @requires_auth

@@ -237,8 +237,7 @@
             type="text"
             id="feedback_received_dt"
             name="feedback_received_dt"
-            placeholder="YYYY-MM-DD-HH-MM"
-            required
+            placeholder=""
           />
           <input type="hidden" id="feedback_received_raw" name="feedback_received_raw" />
         </label>
@@ -1560,34 +1559,69 @@ function fbNext() {
   data.submitted_by = initials;
 
 
-  // --- KPI: Feedback received from vessel (mandatory) ---
-  const fr = syncFeedbackReceivedFields();
-  if (!fr.ok) {
-    alert("Feedback received from vessel is required, and must be a valid date/time (e.g. Mon 02-Mar-26 1:49 PM).");
-    return;
-  }
+  // --- KPI: Feedback received from vessel (only required when Feedback report section has data) ---
+  const feedbackReportUsed = (() => {
+    // 1) If user pasted something or parsed records exist
+    const paste = (document.getElementById('feedbackPaste')?.value || '').replace(/\s/g, '');
+    if (paste) return true;
+    if (typeof fbState !== 'undefined' && fbState && Array.isArray(fbState.records) && fbState.records.length) return true;
 
-  // Ensure both raw + normalized are present in payload
-  data.feedback_received_dt = document.getElementById("feedback_received_dt").value;
-  data.feedback_received_raw = document.getElementById("feedback_received_raw").value || data.feedback_received_dt;
+    // 2) If any fixed feedback report fields are filled
+    const fixedIds = [
+      'fb_date','me_load','me_rpm','avg_me_power','daily_cyl_oil_cons','cyl_oil_feed_rate',
+      'acc_factor','fuel_type','fuel_sulph','humidity','tbn_fed','pc_inlet','pc_outlet','amb_temp',
+      'tbn_scraped','me_lo_desludge','me_lo_temp','me_rh'
+    ];
+    for (const id of fixedIds) {
+      const v = (document.getElementById(id)?.value || '').trim();
+      if (v) return true;
+    }
 
-  // Save KPI metadata (kpi_data) before saving the rest
-  const kpiRes = await fetch('/kpi-submit', {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      register_id: document.getElementById('registerId')?.value || '',
-      vessel_name: document.getElementById('vesselInput')?.value || '',
-      imo_no: document.getElementById('imoNo')?.value || '',
-      feedback_received_dt: data.feedback_received_dt,
-      feedback_received_raw: data.feedback_received_raw
-    })
-  });
+    // 3) If any per-cylinder feedback fields are filled
+    for (let i = 1; i <= (currentCyl || 0); i++) {
+      for (const p of ['fe_mag','fe_cor','fe_tot','res_tbn','unit_val']) {
+        const v = (document.getElementById(`${p}_${i}`)?.value || '').trim();
+        if (v) return true;
+      }
+    }
+    return false;
+  })();
 
-  const kpiOut = await kpiRes.json();
-  if (!kpiRes.ok) {
-    alert(kpiOut.error || "Error saving KPI data");
-    return;
+  if (feedbackReportUsed) {
+    const fr = syncFeedbackReceivedFields();
+    if (!fr.ok) {
+      alert("Feedback received from vessel is required when submitting Feedback report data, and must be a valid date/time (e.g. Mon 02-Mar-26 1:49 PM).");
+      return;
+    }
+
+    // Ensure both raw + normalized are present in payload
+    data.feedback_received_dt = document.getElementById("feedback_received_dt").value;
+    data.feedback_received_raw = document.getElementById("feedback_received_raw").value || data.feedback_received_dt;
+
+    // Save KPI metadata (kpi_data) before saving the rest
+    const kpiRes = await fetch('/kpi-submit', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        register_id: document.getElementById('registerId')?.value || '',
+        vessel_name: document.getElementById('vesselInput')?.value || '',
+        imo_no: document.getElementById('imoNo')?.value || '',
+        feedback_received_dt: data.feedback_received_dt,
+        feedback_received_raw: data.feedback_received_raw
+      })
+    });
+
+    const kpiOut = await kpiRes.json();
+    if (!kpiRes.ok) {
+      alert(kpiOut.error || "Error saving KPI data");
+      return;
+    }
+  } else {
+    // No feedback report data -> do not require KPI date and do not send KPI
+    data.feedback_received_dt = "";
+    data.feedback_received_raw = "";
+    const rawEl = document.getElementById("feedback_received_raw");
+    if (rawEl) rawEl.value = "";
   }
 
   // Normalize lab scrapedown date (allow empty)
