@@ -1489,127 +1489,91 @@ function fbNext() {
       if (/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/.test(s)) return s;
 
       const pad = (n) => String(n).padStart(2, "0");
-
-      // --- Pre-clean ---
-      // Remove commas and collapse whitespace
-      s = s.replace(/,/g, " ").replace(/\s+/g, " ").trim();
-
-      // Remove leading weekday tokens (e.g., "Thu", "Thursday", "Ons", etc.)
-      // We only remove if it looks like "WORD <space> <digit>".
-      s = s.replace(/^[^\d]{2,15}\s+(?=\d)/, "").trim();
-
-      // Unify time separator: allow 2.58 -> 2:58
-      s = s.replace(/(\d{1,2})\.(\d{2})(\b)/g, "$1:$2$3");
-
-      // Accept timezone like "+0100" -> "+01:00"
-      s = s.replace(/([+-]\d{2})(\d{2})\b/g, "$1:$2");
-
-      // Month mapping (English)
-      const monthMap = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
-
-      // Helper to format
       const fmt = (y, mo, d, h, mi) => `${y}-${pad(mo)}-${pad(d)}-${pad(h)}-${pad(mi)}`;
 
-      // If string contains an explicit offset/Z, try Date() path first (handles conversions)
-      // Examples: "2026-03-05 14:58+01:00", "2026-03-05T13:58Z"
-      if (/(Z|[+-]\d{2}:\d{2})\b/.test(s)) {
-        // Make it ISO-ish
-        let iso = s
-          .replace(" ", "T")
-          .replace(/T(\d{1,2}):(\d{2})\b/, (m, hh, mm) => `T${pad(hh)}:${mm}:00`);
-        // If date is YYYY/MM/DD, normalize to YYYY-MM-DD
-        iso = iso.replace(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})T/, (_, y, m, d) => `${y}-${pad(m)}-${pad(d)}T`);
+      // Normalize Outlook weird spaces/dashes
+      s = s
+        .replace(/[\u00A0\u2007\u202F]/g, " ")   // non-breaking spaces
+        .replace(/[–—−]/g, "-")                  // odd dash types
+        .replace(/,/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
-        const dObj = new Date(iso);
-        if (!isNaN(dObj.getTime())) {
-          return fmt(dObj.getFullYear(), dObj.getMonth()+1, dObj.getDate(), dObj.getHours(), dObj.getMinutes());
-        }
-        // fall through to manual parsing if Date() fails
-      }
+      // Remove optional weekday in English/Danish
+      s = s.replace(
+        /^(?:mon|monday|tue|tues|tuesday|wed|wednesday|thu|thur|thurs|thursday|fri|friday|sat|saturday|sun|sunday|man|mandag|tir|tirsdag|ons|onsdag|tor|torsdag|fre|fredag|lør|lørdag|lor|lordag|søn|søndag|son|sondag)\.?,?\s+/i,
+        ""
+      ).trim();
 
-      // --- Strategy 1: "DD-Mon-YY(YY) HH:MM [AM/PM]" (separators can be -, /, .) ---
-      // Examples:
-      // "05-Mar-26 2:58 PM"
-      // "05/Mar/2026 14:58"
-      let m = s.match(/^(\d{1,2})[\/\-\.]([A-Za-z]{3})[\/\-\.](\d{2,4})\s+(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
-      if (m) {
-        const day = parseInt(m[1], 10);
-        const monStr = (m[2] || "").toLowerCase();
-        let year = parseInt(m[3], 10);
-        let hour = parseInt(m[4], 10);
-        const minute = parseInt(m[5], 10);
-        const ampm = (m[6] || "").toLowerCase();
+      // Unify time separator
+      s = s.replace(/(\d{1,2})\.(\d{2})(\b)/g, "$1:$2$3");
+      s = s.replace(/(\d{1,2})\s+(\d{2})(\s*(?:[AaPp][Mm])?\s*)$/, "$1:$2$3");
 
-        const month = monthMap[monStr];
-        if (!month || !day || isNaN(hour) || isNaN(minute)) return "";
+      const monthMap = {
+        jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+        jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+      };
 
-        if (m[3].length === 2) year += 2000;
+      function finish(year, month, day, hour = 0, minute = 0, ampm = "") {
+        year = parseInt(year, 10);
+        month = parseInt(month, 10);
+        day = parseInt(day, 10);
+        hour = parseInt(hour, 10);
+        minute = parseInt(minute, 10);
+
+        if (String(year).length === 2) year += 2000;
 
         if (ampm) {
+          ampm = String(ampm).toLowerCase();
           if (ampm === "pm" && hour < 12) hour += 12;
           if (ampm === "am" && hour === 12) hour = 0;
         }
 
+        if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return "";
+        if (!Number.isInteger(hour) || !Number.isInteger(minute)) return "";
+        if (month < 1 || month > 12) return "";
+        if (day < 1 || day > 31) return "";
+        if (hour < 0 || hour > 23) return "";
+        if (minute < 0 || minute > 59) return "";
+
         return fmt(year, month, day, hour, minute);
       }
 
-      // --- Strategy 2: Numeric date with time (day-first by default, since you're EU/Copenhagen) ---
-      // Examples:
-      // "05-03-2026 14:58"
-      // "05/03/26 2:58 PM"
-      // "5.3.2026 14:58"
-      m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})\s+(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+      let m;
+
+      // DD Mon YY[YY] [HH:MM] [AM/PM]
+      m = s.match(
+        /^(\d{1,2})[\s\/\-\.]+([A-Za-z]{3})[\s\/\-\.]+(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?)?$/
+      );
       if (m) {
-        let d1 = parseInt(m[1], 10);
-        let d2 = parseInt(m[2], 10);
-        let year = parseInt(m[3], 10);
-        let hour = parseInt(m[4], 10);
-        const minute = parseInt(m[5], 10);
-        const ampm = (m[6] || "").toLowerCase();
+        const day = m[1];
+        const mon = monthMap[(m[2] || "").toLowerCase()];
+        if (!mon) return "";
+        return finish(m[3], mon, day, m[4] ?? 0, m[5] ?? 0, m[6] ?? "");
+      }
 
-        if (m[3].length === 2) year += 2000;
+      // DD MM YY[YY] [HH:MM] [AM/PM]  -> always day-first
+      m = s.match(
+        /^(\d{1,2})[\s\/\-\.]+(\d{1,2})[\s\/\-\.]+(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?)?$/
+      );
+      if (m) {
+        let day = parseInt(m[1], 10);
+        let month = parseInt(m[2], 10);
 
-        // Decide day/month:
-        // - If first number > 12 -> it's day
-        // - Else default to EU day-first
-        let day = d1;
-        let month = d2;
-
-        // If clearly month-first (e.g. 03/26/2026), flip
-        if (d1 <= 12 && d2 > 12) { month = d1; day = d2; }
-
-        if (ampm) {
-          if (ampm === "pm" && hour < 12) hour += 12;
-          if (ampm === "am" && hour === 12) hour = 0;
+        // Only swap if the "month" is impossible
+        if (month > 12 && day <= 12) {
+          [day, month] = [month, day];
         }
 
-        if (!day || !month || isNaN(hour) || isNaN(minute)) return "";
-        return fmt(year, month, day, hour, minute);
+        return finish(m[3], month, day, m[4] ?? 0, m[5] ?? 0, m[6] ?? "");
       }
 
-      // --- Strategy 3: ISO-ish "YYYY-MM-DD HH:MM" or "YYYY/MM/DD HH:MM" ---
-      m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+      // YYYY MM DD [HH:MM]
+      m = s.match(
+        /^(\d{4})[\s\/\-\.]+(\d{1,2})[\s\/\-\.]+(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?)?$/
+      );
       if (m) {
-        const year = parseInt(m[1], 10);
-        const month = parseInt(m[2], 10);
-        const day = parseInt(m[3], 10);
-        const hour = parseInt(m[4], 10);
-        const minute = parseInt(m[5], 10);
-        return fmt(year, month, day, hour, minute);
-      }
-
-      // --- Strategy 4: Date only (no time) -> assume 00:00 ---
-      // Examples: "05-03-2026", "05/03/26", "2026-03-05"
-      m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
-      if (m) return fmt(parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10), 0, 0);
-
-      m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
-      if (m) {
-        let d1 = parseInt(m[1],10), d2 = parseInt(m[2],10), y = parseInt(m[3],10);
-        if (m[3].length === 2) y += 2000;
-        let day = d1, month = d2;
-        if (d1 <= 12 && d2 > 12) { month = d1; day = d2; }
-        return fmt(y, month, day, 0, 0);
+        return finish(m[1], m[2], m[3], m[4] ?? 0, m[5] ?? 0, m[6] ?? "");
       }
 
       return "";
@@ -1705,6 +1669,7 @@ function fbNext() {
         register_id: document.getElementById('registerId')?.value || '',
         vessel_name: document.getElementById('vesselInput')?.value || '',
         imo_no: document.getElementById('imoNo')?.value || '',
+        created_by: initials,
         feedback_received_dt: data.feedback_received_dt,
         feedback_received_raw: data.feedback_received_raw
       })
@@ -1714,6 +1679,12 @@ function fbNext() {
     if (!kpiRes.ok) {
       alert(kpiOut.error || "Error saving KPI data");
       return;
+    }
+    // If backend generated a register_id, store it for the PDF request
+    if (kpiRes && kpiRes.register_id) {
+      const hid = document.getElementById('register_id');
+      if (hid && !hid.value) hid.value = kpiResult.register_id;
+      data.register_id = hid?.value || data.register_id;
     }
   } else {
     // No feedback report data -> do not require KPI date and do not send KPI

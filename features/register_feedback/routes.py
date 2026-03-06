@@ -37,6 +37,8 @@ def kpi_submit():
     except Exception:
         imo_no = None
 
+    created_by = (payload.get("created_by") or payload.get("submitted_by") or "").strip() or None
+
     # ---- Received timestamp (optional: sent from register_feedback) ----
     feedback_received_raw = (payload.get("feedback_received_raw") or payload.get("feedback_received_dt") or "").strip() or None
     feedback_received_norm = (payload.get("feedback_received_dt") or "").strip() or None
@@ -78,6 +80,7 @@ def kpi_submit():
                 register_id,
                 vessel_name,
                 imo_no,
+                created_by,
                 feedback_id,
                 feedback_received_at,
                 feedback_received_raw,
@@ -85,10 +88,11 @@ def kpi_submit():
                 action_taken_label,
                 report_generated_at
             )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s, CASE WHEN %s THEN NOW() ELSE NULL END)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s, CASE WHEN %s THEN NOW() ELSE NULL END)
             ON CONFLICT (register_id) DO UPDATE SET
                 vessel_name = COALESCE(EXCLUDED.vessel_name, public.kpi_data.vessel_name),
                 imo_no = COALESCE(EXCLUDED.imo_no, public.kpi_data.imo_no),
+                created_by = COALESCE(public.kpi_data.created_by, EXCLUDED.created_by),
                 feedback_received_at = COALESCE(EXCLUDED.feedback_received_at, public.kpi_data.feedback_received_at),
                 feedback_received_raw = COALESCE(EXCLUDED.feedback_received_raw, public.kpi_data.feedback_received_raw),
                 action_taken_code = COALESCE(EXCLUDED.action_taken_code, public.kpi_data.action_taken_code),
@@ -97,11 +101,12 @@ def kpi_submit():
                     WHEN %s THEN NOW()
                     ELSE public.kpi_data.report_generated_at
                 END
-            RETURNING id, created_at, feedback_id, feedback_received_at, report_generated_at
+            RETURNING id, created_at, feedback_id, feedback_received_at, report_generated_at, created_by
         """, (
             register_id,
             vessel_name,
             imo_no,
+            created_by,
             new_feedback_id,
             feedback_received_at,
             feedback_received_raw,
@@ -123,6 +128,7 @@ def kpi_submit():
             "feedback_id": str(row[2]) if row[2] else None,
             "feedback_received_at": row[3].isoformat() if row[3] else None,
             "report_generated_at": row[4].isoformat() if row[4] else None,
+            "created_by": row[5],
             "register_id": register_id
         })
 
