@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from features.feedback_report_generator.routes import bp as frg_bp
 from features.register_feedback.routes import bp as rf_bp
+from features.vessel_data.routes import vessel_data_bp
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
@@ -11,6 +12,7 @@ def create_app():
     # blueprints
     app.register_blueprint(frg_bp)
     app.register_blueprint(rf_bp)
+    app.register_blueprint(vessel_data_bp)
 
     return app
 

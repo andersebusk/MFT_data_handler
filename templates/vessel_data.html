@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vessel Data</title>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- Select2 -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+      color: #222;
+    }
+
+    .topbar {
+      display:flex;
+      justify-content:flex-start;
+      align-items:center;
+      gap:12px;
+      margin-bottom: 14px;
+      flex-wrap:wrap;
+    }
+
+    .topbar a {
+      text-decoration:none;
+      border:1px solid #ccc;
+      padding:8px 10px;
+      border-radius:6px;
+      color:black;
+      background: #fff;
+    }
+
+    .topbar a:hover {
+      background:#f6f6f6;
+    }
+
+    h1 {
+      margin-bottom: 18px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 420px;
+      flex: 1 1 420px;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    button {
+      padding: 10px 16px;
+      background-color: #A9D18E;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background:#eee;
+      border:1px solid #ccc;
+    }
+
+    .status {
+      margin: 8px 0 14px 0;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .table-card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    #vesselDataTable {
+      width: 100% !important;
+      min-width: 1800px;
+    }
+
+    table.dataTable thead th,
+    table.dataTable tbody td {
+      white-space: nowrap;
+    }
+
+    table.dataTable thead th {
+      cursor: pointer;
+    }
+
+    .select2-container {
+      width: 100% !important;
+    }
+
+    .dataTables_wrapper {
+      width: 100%;
+    }
+
+    .dataTables_scrollBody {
+      overflow-x: auto !important;
+    }
+
+    .helptext {
+      font-size: 0.9rem;
+      color: #555;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a href="/">Dashboard</a>
+    <a href="/feedback-report-generator">Feedback report generator</a>
+    <a href="/register-feedback">Register feedback</a>
+  </div>
+
+  <h1>Vessel Data</h1>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="vesselSelect">Choose one or more vessels</label>
+      <select id="vesselSelect" multiple></select>
+      <div class="helptext">
+        Search by vessel name, select multiple vessels, and change the selection before or after loading.
+      </div>
+    </div>
+
+    <div>
+      <button id="loadBtn" type="button">Load Data</button>
+    </div>
+
+    <div>
+      <button id="selectAllBtn" type="button" class="secondary">Select All</button>
+    </div>
+
+    <div>
+      <button id="clearBtn" type="button" class="secondary">Clear Selection</button>
+    </div>
+  </div>
+
+  <div class="status" id="statusText">Loading vessels...</div>
+
+  <div class="table-card">
+    <div class="table-scroll">
+      <table id="vesselDataTable" class="display compact stripe" style="width:100%"></table>
+    </div>
+  </div>
+
+  <script>
+    let dataTable = null;
+    let latestColumns = [];
+    let latestHeaderLabels = {};
+
+    async function loadVessels() {
+      const res = await fetch("/api/vessel-data/vessels");
+      if (!res.ok) throw new Error("Failed to load vessel list");
+
+      const vessels = await res.json();
+      const sel = $("#vesselSelect");
+      sel.empty();
+
+      vessels.forEach(vessel => {
+        const option = new Option(vessel, vessel, false, false);
+        sel.append(option);
+      });
+
+      $("#vesselSelect").select2({
+        placeholder: "Search and select vessel(s)",
+        allowClear: true,
+        width: "100%",
+        closeOnSelect: false
+      });
+
+      document.getElementById("statusText").textContent =
+        "Choose one or more vessels and click Load Data. Leave empty to load all vessels.";
+    }
+
+    function getSelectedVessels() {
+      return $("#vesselSelect").val() || [];
+    }
+
+    function formatValue(value) {
+      if (value === null || value === undefined) return "";
+      return value;
+    }
+
+    function buildColumns(columns, headerLabels) {
+      return columns.map(col => ({
+        title: headerLabels[col] || col,
+        data: col,
+        defaultContent: ""
+      }));
+    }
+
+    function buildRows(columns, rows) {
+      return rows.map(row => {
+        const out = {};
+        columns.forEach(col => {
+          out[col] = formatValue(row[col]);
+        });
+        return out;
+      });
+    }
+
+    function rebuildTable(columns, rows, headerLabels) {
+      const tableEl = $("#vesselDataTable");
+
+      if ($.fn.DataTable.isDataTable("#vesselDataTable")) {
+        tableEl.DataTable().clear().destroy();
+      }
+
+      tableEl.empty();
+
+      dataTable = tableEl.DataTable({
+        data: buildRows(columns, rows),
+        columns: buildColumns(columns, headerLabels),
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100, 250],
+        scrollX: true,
+        scrollCollapse: true,
+        autoWidth: false,
+        ordering: true,
+        orderMulti: true,
+        searching: true,
+        info: true,
+        destroy: true,
+        language: {
+          search: "Search table:"
+        }
+      });
+
+      setTimeout(() => {
+        if (dataTable) {
+          dataTable.columns.adjust().draw(false);
+        }
+      }, 100);
+    }
+
+    async function loadTableData() {
+      const vessels = getSelectedVessels();
+      document.getElementById("statusText").textContent = "Loading data...";
+
+      const res = await fetch("/api/vessel-data/data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ vessels })
+      });
+
+      if (!res.ok) {
+        document.getElementById("statusText").textContent = "Failed to load data.";
+        throw new Error("Failed to load vessel data");
+      }
+
+      const result = await res.json();
+
+      latestColumns = result.columns || [];
+      latestHeaderLabels = result.header_labels || {};
+
+      rebuildTable(latestColumns, result.rows || [], latestHeaderLabels);
+
+      document.getElementById("statusText").textContent =
+        `${(result.rows || []).length} row(s) loaded. Click a header to sort ascending/descending.`;
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadTableData);
+
+    document.getElementById("selectAllBtn").addEventListener("click", () => {
+      const values = [];
+      $("#vesselSelect option").each(function() {
+        values.push($(this).val());
+      });
+      $("#vesselSelect").val(values).trigger("change");
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      $("#vesselSelect").val(null).trigger("change");
+    });
+
+    loadVessels().catch(err => {
+      console.error(err);
+      document.getElementById("statusText").textContent = "Error loading vessels.";
+    });
+  </script>
+</body>
+</html>
