@@ -56,12 +56,13 @@ def feedback_registrations():
 
         cur.execute("""
             SELECT
-              f.register_id,
-              f.vessel_name,
-              f.imo_no,
-              MAX(f.created_at) AS created_at,
-              k.feedback_received_at,
-              k.report_generated_at
+                f.register_id,
+                k.created_by,
+                f.vessel_name,
+                f.imo_no,
+                MAX(f.created_at) AS created_at,
+                k.feedback_received_at,
+                k.report_generated_at
             FROM public.feedback_data f
             LEFT JOIN public.kpi_data k
               ON k.register_id = f.register_id
@@ -69,7 +70,7 @@ def feedback_registrations():
             AND f.register_id <> ''
             AND f.is_deleted = false
             AND (k.is_deleted IS NULL OR k.is_deleted = false)
-            GROUP BY f.register_id, f.vessel_name, f.imo_no, k.feedback_received_at, k.report_generated_at
+            GROUP BY f.register_id, k.created_by, f.vessel_name, f.imo_no, k.feedback_received_at, k.report_generated_at
             ORDER BY MAX(f.created_at) DESC
             LIMIT 50
         """)

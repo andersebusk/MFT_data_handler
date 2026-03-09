@@ -397,14 +397,16 @@ document.getElementById('pdfForm').addEventListener('submit', async function(e) 
         (rows || []).forEach(r => {
           if (!r || !r.feedback_received_at) return;
           const created = r.created_at ? new Date(r.created_at).toISOString().slice(0,16).replace('T',' ') : '';
+          const createdBy = r.created_by ? r.created_by : '--';
           const recv = r.feedback_received_at ? 'Received ✔' : 'Received ✖';
           const rep  = r.report_generated_at ? 'Report ✔' : 'Report ✖';
 
           const opt = document.createElement('option');
           opt.value = r.register_id;
-          opt.textContent = `${r.vessel_name} | IMO ${r.imo_no} | ${created} | ${recv} | ${rep}`;
+          opt.textContent = `${createdBy} | ${r.vessel_name} | IMO ${r.imo_no} | ${created} | ${recv} | ${rep}`;
           opt.dataset.vessel = r.vessel_name || '';
           opt.dataset.imo = r.imo_no || '';
+          opt.dataset.createdBy = r.created_by || '';
           sel.appendChild(opt);
         });
 
