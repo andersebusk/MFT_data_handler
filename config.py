@@ -16,9 +16,6 @@ PDFGENERATOR_TEMPLATE_ID = os.environ.get("PDFGENERATOR_TEMPLATE_ID")
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Vessel master data (Excel)
-VESSEL_EXCEL_FILE = os.environ.get("VESSEL_EXCEL_FILE")
-
 # S3 for images
 S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 AWS_REGION = os.environ.get("AWS_REGION")

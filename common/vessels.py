@@ -1,15 +1,28 @@
-import pandas as pd
-from config import VESSEL_EXCEL_FILE
-
-_vessel_data_cache = None
+from common.db import get_db_connection
+import psycopg2.extras
 
 def load_vessels():
-    global _vessel_data_cache
-    if _vessel_data_cache is None:
-        df = pd.read_excel(VESSEL_EXCEL_FILE).fillna("")
-        if "cylinders" in df.columns:
-            df["cylinders"] = pd.to_numeric(df["cylinders"], errors="coerce").fillna(0).astype(int)
-        else:
-            df["cylinders"] = 0
-        _vessel_data_cache = df.to_dict(orient="records")
-    return _vessel_data_cache
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            imo_no,
+            customer,
+            vessel_name,
+            en_manu,
+            en_mod,
+            mcr_out,
+            fil_pur,
+            cylinders,
+            responsible,
+            priority
+        FROM legacy_vessels
+        ORDER BY vessel_name ASC
+    """)
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return [dict(r) for r in rows]
