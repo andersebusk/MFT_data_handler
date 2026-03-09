@@ -11,9 +11,9 @@
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-  <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
-  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <!-- AG Grid -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css">
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 
   <style>
     body {
@@ -103,41 +103,20 @@
       box-sizing: border-box;
     }
 
-    .table-scroll {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    #vesselDataTable {
-      width: 100% !important;
-      min-width: 1800px;
-    }
-
-    table.dataTable thead th,
-    table.dataTable tbody td {
-      white-space: nowrap;
-    }
-
-    table.dataTable thead th {
-      cursor: pointer;
-    }
-
-    .select2-container {
-      width: 100% !important;
-    }
-
-    .dataTables_wrapper {
-      width: 100%;
-    }
-
-    .dataTables_scrollBody {
-      overflow-x: auto !important;
-    }
-
     .helptext {
       font-size: 0.9rem;
       color: #555;
       margin-top: 4px;
+    }
+
+    #vesselDataGrid {
+      width: 100%;
+      height: 70vh;
+      min-height: 500px;
+    }
+
+    .select2-container {
+      width: 100% !important;
     }
   </style>
 </head>
@@ -176,15 +155,36 @@
   <div class="status" id="statusText">Loading vessels...</div>
 
   <div class="table-card">
-    <div class="table-scroll">
-      <table id="vesselDataTable" class="display compact stripe" style="width:100%"></table>
-    </div>
+    <div id="vesselDataGrid" class="ag-theme-alpine"></div>
   </div>
 
   <script>
-    let dataTable = null;
+    let gridApi = null;
     let latestColumns = [];
     let latestHeaderLabels = {};
+
+    const gridOptions = {
+      theme: "legacy",
+      defaultColDef: {
+        sortable: true,
+        filter: true,
+        resizable: true,
+        minWidth: 140
+      },
+      animateRows: true,
+      rowSelection: {
+        mode: 'multiRow',
+        enableClickSelection: false
+      },
+      pagination: true,
+      paginationPageSize: 25,
+      paginationPageSizeSelector: [10, 25, 50, 100]
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const gridDiv = document.getElementById('vesselDataGrid');
+      gridApi = agGrid.createGrid(gridDiv, gridOptions);
+    });
 
     async function loadVessels() {
       const res = await fetch("/api/vessel-data/vessels");
@@ -207,7 +207,7 @@
       });
 
       document.getElementById("statusText").textContent =
-        "Choose one or more vessels and click Load Data. Leave empty to load all vessels.";
+        "Choose one or more vessels and click Load Data. Use column menu for sort/filter.";
     }
 
     function getSelectedVessels() {
@@ -216,19 +216,29 @@
 
     function formatValue(value) {
       if (value === null || value === undefined) return "";
+      if (typeof value === "object") {
+        try {
+          return JSON.stringify(value);
+        } catch (_) {
+          return String(value);
+        }
+      }
       return value;
     }
 
-    function buildColumns(columns, headerLabels) {
+    function buildColumnDefs(columns, headerLabels) {
       return columns.map(col => ({
-        title: headerLabels[col] || col,
-        data: col,
-        defaultContent: ""
+        field: col,
+        headerName: headerLabels[col] || col,
+        sortable: true,
+        filter: true,
+        resizable: true,
+        minWidth: 140
       }));
     }
 
     function buildRows(columns, rows) {
-      return rows.map(row => {
+      return (rows || []).map(row => {
         const out = {};
         columns.forEach(col => {
           out[col] = formatValue(row[col]);
@@ -237,38 +247,17 @@
       });
     }
 
-    function rebuildTable(columns, rows, headerLabels) {
-      const tableEl = $("#vesselDataTable");
-
-      if ($.fn.DataTable.isDataTable("#vesselDataTable")) {
-        tableEl.DataTable().clear().destroy();
+    function rebuildGrid(columns, rows, headerLabels) {
+      if (!gridApi) {
+        console.error("AG Grid API not ready yet.");
+        return;
       }
 
-      tableEl.empty();
+      const columnDefs = buildColumnDefs(columns, headerLabels);
+      const rowData = buildRows(columns, rows);
 
-      dataTable = tableEl.DataTable({
-        data: buildRows(columns, rows),
-        columns: buildColumns(columns, headerLabels),
-        pageLength: 25,
-        lengthMenu: [10, 25, 50, 100, 250],
-        scrollX: true,
-        scrollCollapse: true,
-        autoWidth: false,
-        ordering: true,
-        orderMulti: true,
-        searching: true,
-        info: true,
-        destroy: true,
-        language: {
-          search: "Search table:"
-        }
-      });
-
-      setTimeout(() => {
-        if (dataTable) {
-          dataTable.columns.adjust().draw(false);
-        }
-      }, 100);
+      gridApi.setGridOption("columnDefs", columnDefs);
+      gridApi.setGridOption("rowData", rowData);
     }
 
     async function loadTableData() {
@@ -293,10 +282,10 @@
       latestColumns = result.columns || [];
       latestHeaderLabels = result.header_labels || {};
 
-      rebuildTable(latestColumns, result.rows || [], latestHeaderLabels);
+      rebuildGrid(latestColumns, result.rows || [], latestHeaderLabels);
 
       document.getElementById("statusText").textContent =
-        `${(result.rows || []).length} row(s) loaded. Click a header to sort ascending/descending.`;
+        `${(result.rows || []).length} row(s) loaded.`;
     }
 
     document.getElementById("loadBtn").addEventListener("click", loadTableData);
