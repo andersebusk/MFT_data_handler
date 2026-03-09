@@ -27,7 +27,7 @@ def kpi_submit():
     # ---- Link key (required) ----
     register_id = (payload.get("register_id") or "").strip()
     if not register_id:
-        register_id = str(uuid.uuid4())
+        return jsonify({"error": "register_id is required"}), 400
 
     # ---- Optional vessel meta ----
     vessel_name = (payload.get("vessel_name") or "").strip() or None
