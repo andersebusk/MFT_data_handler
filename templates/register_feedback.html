@@ -163,7 +163,7 @@
         <option value="TLC">TLC</option>
         <option value="SBO">SBO</option>
         <option value="AEB">AEB</option>
-        <option value="TAN">TLC</option>
+        <option value="TAN">TAN</option>
         </select>
 
         <label>Vessel Name:</label>
@@ -193,7 +193,7 @@
           <h2 style="margin-top:0;">Laboratory scrapedown report</h2>
 
           <label style="display:block; margin-bottom:6px;">
-            Submitted at:
+            Insert the "Date of report" field from the report:
           </label>
 
           <input type="text"
@@ -261,6 +261,19 @@
             <button type="button" class="secondary" id="fbNextBtn" onclick="fbNext()">Next</button>
             <span class="pill" id="fbNavPill">Row: —</span>
             <span class="pill" id="fbCountPill">Rows: 0</span>
+        </div>
+
+        <div class="cell" style="margin-top:10px;">
+          <label>Parsed row range warnings:</label>
+          <textarea
+            id="feedbackRangeWarnings"
+            readonly
+            style="min-height:80px; width:100%; resize:vertical; background:#fff8e1; border:1px solid #d6b656;"
+            placeholder="Warnings from Parse into records will appear here."
+          ></textarea>
+          <div class="small" style="margin-top:6px;">
+            Shows parsed values that are outside the normal ranges and should be checked before continuing.
+          </div>
         </div>
 
         <div class="cell" style="margin-top:10px;">
@@ -363,7 +376,7 @@
         </div>
 
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-            <div class="cell"><label>Date:</label><input type="text" name="scav_date" id="scav_date" placeholder="dd-mm-yyyy"></div>
+            <div class="cell"><label>Date:</label><input type="text" name="scav_date" id="scav_date" placeholder="YYYY-MM-DD"></div>
             <div class="cell"><label>Coating type:</label><input type="text" name="coat_type" id="coat_type"></div>
         </div>
 
@@ -406,7 +419,7 @@
   </div>
 
   <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-    <div class="cell"><label>Date of sample:</label><input type="text" name="sys_date" id="sys_date" placeholder="dd-mm-yyyy"></div>
+    <div class="cell"><label>Date of sample:</label><input type="text" name="sys_date" id="sys_date" placeholder="YYYY-MM-DD"></div>
     <div class="cell"><label>Viscosity @ 40°C [cSt]:</label><input type="text" name="visc40" id="visc40"></div>
     <div class="cell"><label>Viscosity @ 100°C [cSt]:</label><input type="text" name="visc100" id="visc100"></div>
     <div class="cell"><label>Base number [BN]:</label><input type="text" name="base_number" id="base_number"></div>
@@ -799,32 +812,31 @@ function warnIfMismatch(values, expectedMin, label) {
 
       const fixedCols = 17;
       const expectedMin = fixedCols + (5 * currentCyl) + 1; // + ME RH
-      values = padValues(values, expectedMin);
+
+      values = normalizeFeedbackValuesLayout(values);
       warnIfMismatch(values, expectedMin, "Feedback report");
 
-      values[0]=normalizeDateToISO(values[0]);
+      values[0] = normalizeDateToISO(values[0]);
 
-        set('fb_date', values[0]);
-        set('me_load', values[1]);
-        set('me_rpm', values[2]);
-        set('avg_me_power', values[3]);
-        set('daily_cyl_oil_cons', values[4]);
-        set('cyl_oil_feed_rate', values[5]);
-        set('acc_factor', values[6]);
-        set('fuel_type', values[7]);
-        set('fuel_sulph', values[8]);
-        set('humidity', values[9]);
-        set('tbn_fed', values[10]);
-        set('pc_inlet', values[11]);
-        set('pc_outlet', values[12]);
-        set('amb_temp', values[13]);
-        set('tbn_scraped', values[14]);
-        set('me_lo_desludge', values[15]);
-        set('me_lo_temp', values[16]);
+      set('fb_date', values[0]);
+      set('me_load', values[1]);
+      set('me_rpm', values[2]);
+      set('avg_me_power', values[3]);
+      set('daily_cyl_oil_cons', values[4]);
+      set('cyl_oil_feed_rate', values[5]);
+      set('acc_factor', values[6]);
+      set('fuel_type', values[7]);
+      set('fuel_sulph', values[8]);
+      set('humidity', values[9]);
+      set('tbn_fed', values[10]);
+      set('pc_inlet', values[11]);
+      set('pc_outlet', values[12]);
+      set('amb_temp', values[13]);
+      set('tbn_scraped', values[14]);
+      set('me_lo_desludge', values[15]);
+      set('me_lo_temp', values[16]);
 
-    let idx = fixedCols;
-
-      
+      let idx = fixedCols;
 
       for (let i = 1; i <= currentCyl; i++) set(`fe_mag_${i}`, values[idx++] ?? '');
       for (let i = 1; i <= currentCyl; i++) set(`fe_cor_${i}`, values[idx++] ?? '');
@@ -833,10 +845,6 @@ function warnIfMismatch(values, expectedMin, label) {
       for (let i = 1; i <= currentCyl; i++) set(`unit_val_${i}`, values[idx++] ?? '');
 
       set('me_rh', values[idx] ?? values[values.length - 1] ?? '');
-
-      _wireFeedbackAvgListeners();
-      updateFeedbackAverages();
-
     }
 
     // -----------------------------------------
@@ -883,13 +891,11 @@ function warnIfMismatch(values, expectedMin, label) {
     function feedbackValuesToRecord(values) {
         if (!currentCyl) return null;
 
-        // Fixed columns (17):
-        // Date, ME load, ME RPM, Avg ME power, Daily cyl oil cons, Feed rate, ACC,
-        // Fuel type, Fuel sulph, Humidity, TBN fed, PC inlet, PC outlet, Ambient temp,
-        // TBN scraped, ME LO desludge interval, ME LO purification temp
-        const fixedCols = 17;
+        const fixedCols = 17; // canonical fixed layout always includes pc_inlet/pc_outlet
         const expectedMin = fixedCols + (5 * currentCyl) + 1; // + ME RH
-        values = padValues(values, expectedMin);
+
+        values = normalizeFeedbackValuesLayout(values);
+        warnIfMismatch(values, expectedMin, "Feedback report");
 
         let idx = fixedCols;
 
@@ -1160,6 +1166,193 @@ function _parseNum(x) {
   return Number.isFinite(v) ? v : NaN;
 }
 
+// -----------------------------------------
+// Feedback report fixed-field range checks
+// -----------------------------------------
+const FEEDBACK_FIXED_CONSTRAINTS = {
+  me_load:           { label: "Main Engine load [%]",                    type: "decimal", min: 0, max: 100,    optional: true, allowed: ["", "N/A", "-"] },
+  me_rpm:            { label: "Main Engine RPM [rpm]",                   type: "decimal", min: 0, max: 150,    optional: true, allowed: ["", "N/A", "-"] },
+  avg_me_power:      { label: "Average Main Engine power [kWh]",         type: "decimal", min: 0, max: 50000,  optional: true, allowed: ["", "N/A", "-"] },
+  daily_cyl_oil_cons:{ label: "Daily Cylinder Oil Consumption [ltrs]",   type: "decimal", min: 0, max: 5000,   optional: true, allowed: ["", "N/A", "-"] },
+  cyl_oil_feed_rate: { label: "Cylinder oil Feed rate [g/kWh]",          type: "decimal", min: 0, max: 3,      optional: true, allowed: ["", "N/A", "-"] },
+  acc_factor:        { label: "Cylinder Lubricator ACC factor [% m/m]",  type: "decimal", min: 0, max: 0.45,   optional: true, allowed: ["", "N/A", "-"] },
+
+  fuel_type:         { label: "Fuel type",                               type: "text",                          optional: true, allowed: ["", "N/A", "-"] },
+
+  fuel_sulph:        { label: "Fuel sulphur content [%]",                type: "decimal", min: 0, max: 4,      optional: true, allowed: ["", "N/A", "-"] },
+  humidity:          { label: "Humidity [%]",                            type: "decimal", min: 0, max: 100,    optional: true, allowed: ["", "N/A", "-"] },
+  tbn_fed:           { label: "TBN of blended oil fed to engine [BN]",   type: "decimal", min: 0, max: 200,    optional: true, allowed: ["", "N/A", "-"] },
+
+  pc_inlet:          { label: "ME PC oil Temp Avg INLET [C degr.]",      type: "decimal", min: 0, max: 100,    optional: true, allowed: ["", "N/A", "-"] },
+  pc_outlet:         { label: "ME PC oil Temp Avg OUTLET [C degr.]",     type: "decimal", min: 0, max: 100,    optional: true, allowed: ["", "N/A", "-"] },
+
+  amb_temp:          { label: "Ambient engine room temperature [C degr.]", type: "decimal", min: 0, max: 80,   optional: true, allowed: ["", "N/A", "-"] },
+  tbn_scraped:       { label: "TBN scraped down [BN]",                   type: "decimal", min: 0, max: 200,    optional: true, allowed: ["", "N/A", "-"] },
+
+  me_lo_desludge:    { label: "ME LO purifier desludging intervals [hrs]", type: "decimal", min: 0, max: 5,    optional: true, allowed: ["", "N/A", "-"] },
+  me_lo_temp:        { label: "ME LO purification temperature [C degr.]", type: "decimal", min: 0, max: 150,  optional: true, allowed: ["", "N/A", "-"] },
+
+  me_rh:             { label: "ME RH [hrs]",                             type: "decimal", min: 0, max: 100000, optional: true, allowed: ["", "N/A", "-"] }
+};
+
+function _normalizeSpecialValue(v) {
+  return String(v ?? "").trim();
+}
+
+function _isAllowedSpecial(v, allowedList) {
+  const s = _normalizeSpecialValue(v);
+  return (allowedList || []).some(a => String(a).toUpperCase() === s.toUpperCase());
+}
+
+function _toComparableNumber(v) {
+  const s = String(v ?? "").trim().replace(',', '.');
+  if (!s) return NaN;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function _toNumberOrNull(v) {
+  const s = String(v ?? "").trim();
+  if (!s || s.toUpperCase() === "N/A" || s === "-") return null;
+
+  const n = _toComparableNumber(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function validateFeedbackFixedRecord(record, rowNumber) {
+  const warnings = [];
+
+  for (const [field, rule] of Object.entries(FEEDBACK_FIXED_CONSTRAINTS)) {
+    const raw = record?.[field];
+    const value = _normalizeSpecialValue(raw);
+
+    // Optional + allowed specials
+    if (_isAllowedSpecial(value, rule.allowed)) continue;
+
+    // Empty optional
+    if (!value && rule.optional) continue;
+
+    if (rule.type === "text") {
+      // For fuel_type no range check beyond allowed specials / arbitrary text
+      continue;
+    }
+
+    if (rule.type === "decimal") {
+      const num = _toComparableNumber(value);
+
+      if (Number.isNaN(num)) {
+        warnings.push(`Row ${rowNumber}: ${rule.label} = "${value}" is not a valid number.`);
+        continue;
+      }
+
+      if (typeof rule.min === "number" && num < rule.min) {
+        warnings.push(`Row ${rowNumber}: ${rule.label} = ${value} is below min ${rule.min}.`);
+        continue;
+      }
+
+      if (typeof rule.max === "number" && num > rule.max) {
+        warnings.push(`Row ${rowNumber}: ${rule.label} = ${value} is above max ${rule.max}.`);
+        continue;
+      }
+    }
+  }
+
+  return warnings;
+}
+
+function validateFeedbackPerCylinderRecord(record, rowNumber) {
+  const warnings = [];
+
+  const cyl = record?.per_cylinder || {};
+  const feTotArr = Array.isArray(cyl.fe_tot) ? cyl.fe_tot : [];
+  const resTbnArr = Array.isArray(cyl.res_tbn) ? cyl.res_tbn : [];
+
+  const fuelSulph = _toNumberOrNull(record?.fuel_sulph);
+  const tbnFed = _toNumberOrNull(record?.tbn_fed);
+
+  // -----------------------------------------
+  // 1) Fe total [ppm] warning if > 150
+  // -----------------------------------------
+  feTotArr.forEach((val, idx) => {
+    const num = _toNumberOrNull(val);
+    if (num === null) return;
+
+    if (num > 150) {
+      warnings.push(
+        `Row ${rowNumber}, Cylinder ${idx + 1}: Fe total [ppm] = ${val} is above 150.`
+      );
+    }
+  });
+
+  // -----------------------------------------
+  // 2) Residual TBN warning based on fuel_sulph and tbn_fed
+  // -----------------------------------------
+  if (fuelSulph !== null && tbnFed !== null) {
+    let thresholdFraction = null;
+
+    if (fuelSulph >= 0 && fuelSulph <= 0.5) {
+      thresholdFraction = 0.80;
+    } else if (fuelSulph > 0.5 && fuelSulph <= 3.5) {
+      thresholdFraction = 0.30;
+    }
+
+    if (thresholdFraction !== null) {
+      const thresholdValue = tbnFed * thresholdFraction;
+
+      resTbnArr.forEach((val, idx) => {
+        const num = _toNumberOrNull(val);
+        if (num === null) return;
+
+        if (num < thresholdValue) {
+          warnings.push(
+            `Row ${rowNumber}, Cylinder ${idx + 1}: Residual TBN [BN] = ${val} is below ${thresholdFraction * 100}% of TBN fed (${tbnFed}), threshold ${thresholdValue.toFixed(2)}.`
+          );
+        }
+      });
+    }
+  }
+
+  return warnings;
+}
+
+function validateAllParsedFeedbackFixedRanges(records) {
+  const allWarnings = [];
+  if (!Array.isArray(records) || !records.length) return allWarnings;
+
+  records.forEach((rec, idx) => {
+    const rowNumber = idx + 1;
+
+    allWarnings.push(...validateFeedbackFixedRecord(rec, rowNumber));
+    allWarnings.push(...validateFeedbackPerCylinderRecord(rec, rowNumber));
+  });
+
+  return allWarnings;
+}
+
+function renderFeedbackRangeWarnings(warnings) {
+  const box = document.getElementById('feedbackRangeWarnings');
+  if (!box) return;
+
+  if (!warnings || !warnings.length) {
+    box.value = "No out-of-range values found in parsed fixed feedback-report fields.";
+    return;
+  }
+
+  box.value =
+    "Please double-check these parsed values before moving on:\n\n" +
+    warnings.join("\n");
+}
+
+function alertFeedbackRangeWarnings(warnings) {
+  if (!warnings || !warnings.length) return;
+
+  const message =
+    "Please double-check these parsed values before moving on:\n\n" +
+    warnings.join("\n");
+
+  alert(message);
+}
+
 function updateFeedbackAverages() {
   // If we have parsed records, compute averages across ALL parsed rows.
   // Also commit current visible edits (non-destructive) so averages stay in sync while typing.
@@ -1261,6 +1454,45 @@ function fbSetPill() {
   pill.textContent = `Row: ${fbState.pos + 1} / ${fbState.validIdxs.length}`;
 }
 
+function normalizeFeedbackValuesLayout(values) {
+  if (!currentCyl) return Array.isArray(values) ? values.slice() : [];
+
+  const raw = Array.isArray(values) ? values.slice() : [];
+
+  const fixedShort = 15; // no pc_inlet/pc_outlet
+  const fixedLong = 17;  // with pc_inlet/pc_outlet
+  const tailCols = (5 * currentCyl) + 1; // per-cylinder blocks + ME RH
+
+  const expectedShort = fixedShort + tailCols;
+  const expectedLong = fixedLong + tailCols;
+
+  // If the row is clearly the long format, keep it as-is and pad to long length
+  if (raw.length >= expectedLong) {
+    return padValues(raw, expectedLong);
+  }
+
+  // If the row is the short format, insert blanks for pc_inlet + pc_outlet
+  if (raw.length >= expectedShort) {
+    const out = [];
+    out.push(...raw.slice(0, 11));   // up to and including tbn_fed
+    out.push('', '');                // pc_inlet, pc_outlet missing in short format
+    out.push(...raw.slice(11));      // rest shifts right by 2
+    return padValues(out, expectedLong);
+  }
+
+  // Fallback: still try to normalize as short format and pad
+  // This is safer than forcing the wrong alignment.
+  const out = [];
+  out.push(...raw.slice(0, Math.min(11, raw.length)));
+  out.push('', '');
+
+  if (raw.length > 11) {
+    out.push(...raw.slice(11));
+  }
+
+  return padValues(out, expectedLong);
+}
+
 function fbReadRecordFromInputs() {
   if (!currentCyl) return null;
   const get = (id) => {
@@ -1297,6 +1529,17 @@ function fbReadRecordFromInputs() {
   for (let i = 1; i <= currentCyl; i++) rec.per_cylinder.unit.push(get(`unit_val_${i}`));
 
   return rec;
+}
+
+function runParsedFeedbackRangeChecks() {
+  const records = (typeof fbState !== "undefined" && fbState && Array.isArray(fbState.records))
+    ? fbState.records
+    : [];
+
+  const warnings = validateAllParsedFeedbackFixedRanges(records);
+  renderFeedbackRangeWarnings(warnings);
+  alertFeedbackRangeWarnings(warnings);
+  return warnings;
 }
 
 function fbWriteRecordToInputs(rec) {
@@ -1407,6 +1650,8 @@ function fbNext() {
 
     // By default show the LAST parsed row (same as before)
     fbRender();
+
+    runParsedFeedbackRangeChecks();
     });
 
     document.getElementById('clearFeedbackBtn').addEventListener('click', () => {
@@ -1432,6 +1677,8 @@ function fbNext() {
         const el = document.getElementById(`${p}_${i}`); if (el) el.value = '';
         });
     }
+    const warnBox = document.getElementById('feedbackRangeWarnings');
+    if (warnBox) warnBox.value = '';
     });
 
     document.getElementById('parseScavBtn').addEventListener('click', () => {
