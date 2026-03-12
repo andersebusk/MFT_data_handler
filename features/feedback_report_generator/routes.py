@@ -5,6 +5,7 @@ from common.s3 import get_s3_client, get_bucket_name
 from common.vessels import load_vessels
 from common.pdfgen import generate_pdf
 import psycopg2.extras
+from decimal import Decimal
 
 from common.db import get_db_connection
 
@@ -82,6 +83,155 @@ def feedback_registrations():
 
     except Exception as e:
         print("feedback-registrations ERROR:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/feedback-report-autofill/<register_id>", methods=["GET"])
+@requires_auth
+def feedback_report_autofill(register_id):
+    def _safe_float(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, Decimal):
+            return float(value)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _fmt_date(value):
+        if value is None or value == "":
+            return None
+        if hasattr(value, "strftime"):
+            return value.strftime("%Y-%m-%d")
+        return str(value)
+
+    def _flatten_numeric_values(values):
+        nums = []
+        def _walk(v):
+            if v is None or v == "":
+                return
+            if isinstance(v, (list, tuple)):
+                for item in v:
+                    _walk(item)
+                return
+            n = _safe_float(v)
+            if n is not None:
+                nums.append(n)
+        for value in values:
+            _walk(value)
+        return nums
+
+    def _avg(values):
+        nums = _flatten_numeric_values(values)
+        if not nums:
+            return None
+        return round(sum(nums) / len(nums), 2)
+
+    def _pick_cols(row, prefixes):
+        if not row:
+            return []
+        cols = []
+        for key in row.keys():
+            k = (key or "").lower()
+            if any(k.startswith(p) for p in prefixes):
+                cols.append(key)
+        return sorted(cols)
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute(
+            """
+            SELECT *
+            FROM public.feedback_data
+            WHERE register_id = %s
+              AND COALESCE(is_deleted, false) = false
+            ORDER BY fb_date ASC NULLS LAST, created_at ASC NULLS LAST
+            """,
+            (register_id,)
+        )
+        rows = cur.fetchall()
+        if not rows:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "No feedback rows found for register_id"}), 404
+
+        first_row = rows[0]
+        latest_row = rows[-1]
+        imo_no = latest_row.get("imo_no") or first_row.get("imo_no")
+        created_by = latest_row.get("created_by") or first_row.get("created_by")
+        if not created_by:
+            try:
+                cur.execute("SELECT created_by FROM public.kpi_data WHERE register_id = %s LIMIT 1", (register_id,))
+                kpi_row = cur.fetchone() or {}
+                created_by = kpi_row.get("created_by")
+            except Exception as kpi_err:
+                conn.rollback()
+                print("kpi_data lookup warning:", kpi_err)
+
+        cur.execute(
+            """
+            SELECT cyl_oil_feed_rate
+            FROM public.feedback_data
+            WHERE CAST(imo_no AS text) = CAST(%s AS text)
+              AND COALESCE(is_deleted, false) = false
+            ORDER BY fb_date ASC NULLS LAST, created_at ASC NULLS LAST
+            LIMIT 1
+            """,
+            (imo_no,)
+        )
+        oldest_imo_row = cur.fetchone() or {}
+
+        latest_lab_date = None
+        try:
+            cur.execute(
+                """
+                SELECT MAX(lab_date) AS latest_lab_date
+                FROM public.scrape_lab
+                WHERE CAST(imo_no AS text) = CAST(%s AS text)
+                """,
+                (imo_no,)
+            )
+            lab_row = cur.fetchone() or {}
+            latest_lab_date = lab_row.get("latest_lab_date")
+        except Exception as lab_err:
+            conn.rollback()
+            print("scrape_lab lookup warning:", lab_err)
+            latest_lab_date = None
+
+        cur.close()
+        conn.close()
+
+        res_tbn_cols = _pick_cols(latest_row, ["res_tbn", "residual_tbn", "res_bn"])
+        fe_tot_cols = _pick_cols(latest_row, ["fe_tot", "fe_total"])
+
+        payload = {
+            "register_id": register_id,
+            "created_by": created_by,
+            "imo_no": imo_no,
+            "date_of_report": datetime.now().strftime("%Y-%m-%d"),
+            "sample_period_from": _fmt_date(next((r.get("fb_date") for r in rows if r.get("fb_date") is not None), None)),
+            "sample_period_to": _fmt_date(next((r.get("fb_date") for r in reversed(rows) if r.get("fb_date") is not None), None)),
+            "latest_onboard_sample_date": _fmt_date(next((r.get("fb_date") for r in reversed(rows) if r.get("fb_date") is not None), None)),
+            "latest_lab_sample_date": _fmt_date(latest_lab_date),
+            "avg_load": _avg([r.get("me_load") for r in rows]),
+            "fuel_sulph": _safe_float(latest_row.get("fuel_sulph")),
+            "clo_bn": _safe_float(latest_row.get("tbn_fed")),
+            "avg_clo_24hrs": _avg([r.get("daily_cyl_oil_cons") for r in rows]),
+            "acc_factor": _safe_float(latest_row.get("acc_factor")),
+            "feedrate_before_bob": _safe_float(oldest_imo_row.get("cyl_oil_feed_rate")),
+            "latest_feedrate": _safe_float(latest_row.get("cyl_oil_feed_rate")),
+            "avg_res_tbn": _avg([r.get(col) for r in rows for col in res_tbn_cols]),
+            "avg_fe_tot": _avg([r.get(col) for r in rows for col in fe_tot_cols]),
+            "res_tbn_columns": res_tbn_cols,
+            "fe_tot_columns": fe_tot_cols,
+        }
+        return jsonify(payload)
+
+    except Exception as e:
+        print("feedback-report-autofill ERROR:", repr(e))
         return jsonify({"error": str(e)}), 500
 
 @bp.route("/generate-pdf", methods=["POST"])

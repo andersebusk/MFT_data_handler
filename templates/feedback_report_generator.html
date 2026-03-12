@@ -62,7 +62,7 @@
   <div class="topbar">
     <a href="/">Dashboard</a>
     <a href="/register-feedback">Register Feedback</a>
-    <a href="/vessel-overview">Vessel Data</a>
+    <a href="/vessel-overview">Vessel Report Overview</a>
     <a href="/vessel-data">Vessel Data</a>
   </div>
 
@@ -169,7 +169,7 @@
       <h2>Report Summary</h2>
 
       <label>Residual BN observation:
-        <select onchange="setObsWithAverage('res_bn_obs', this.value, 'Reporting period average: [mgKOH/g]');">
+        <select data-obs-target="res_bn_obs" onchange="setObsWithAverage('res_bn_obs', this.value);">
           <option value="">-- Select Option --</option>
           <option value="Residual BN is within the normal range and aligns with OEM guidelines.">Residual BN is within the normal range and aligns with OEM guidelines.</option>
           <option value="Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.">Residual BN is slightly on the higher side, with average values around {bn} mgKOH/g, but still within OEM guiding values.</option>
@@ -180,7 +180,7 @@
       </label>
 
       <label>Fe total observation:
-        <select onchange="setObsWithAverage('fe_tot_obs', this.value, 'Reporting period average: [ppm]');">
+        <select data-obs-target="fe_tot_obs" onchange="setObsWithAverage('fe_tot_obs', this.value);">
           <option value="">-- Select Option --</option>
           <option value="Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.">Fe Total levels are within normal ranges, indicating low wear and stable operating conditions.</option>
           <option value="Fe Total levels are slightly elevated but remain within acceptable limits.">Fe Total levels are slightly elevated but remain within acceptable limits.</option>
@@ -332,17 +332,104 @@
     // Submit form
     // Submit form
 
-    // -------------------------------
-    // Observation helper (adds avg line)
-    // -------------------------------
-    function setObsWithAverage(textareaId, selectedText, avgLine) {
+    let currentAutofillAverages = { avg_res_tbn: null, avg_fe_tot: null };
+
+    function formatAvgValue(value, decimals = 2) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '';
+      return n.toFixed(decimals).replace(/\.00$/, '');
+    }
+
+    function formatDateDDMMYY(value) {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      return `${dd}-${mm}-${yy}`;
+    }
+
+    function setInputValue(name, value) {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (!el) return;
+      el.value = (value === null || value === undefined) ? '' : value;
+    }
+
+    function getAverageLine(textareaId) {
+      if (textareaId === 'res_bn_obs') {
+        const val = formatAvgValue(currentAutofillAverages.avg_res_tbn);
+        return val ? `Reporting period average: ${val} [mgKOH/g]` : '';
+      }
+      if (textareaId === 'fe_tot_obs') {
+        const val = formatAvgValue(currentAutofillAverages.avg_fe_tot);
+        return val ? `Reporting period average: ${val} [ppm]` : '';
+      }
+      return '';
+    }
+
+    function setObsWithAverage(textareaId, selectedText) {
       const ta = document.getElementById(textareaId);
       if (!ta) return;
-      const base = (selectedText || "").toString().trim();
-      const extra = (avgLine || "").toString().trim();
-      if (!base && !extra) { ta.value = ""; return; }
-      if (base && extra) ta.value = base + "\n\n" + extra;
-      else ta.value = base || extra;
+      let base = (selectedText || '').toString().trim();
+      if (textareaId === 'res_bn_obs') {
+        const avgVal = formatAvgValue(currentAutofillAverages.avg_res_tbn);
+        if (avgVal) base = base.replaceAll('{bn}', avgVal);
+      }
+      const extra = getAverageLine(textareaId);
+      if (!base && !extra) { ta.value = ''; return; }
+      ta.value = base && extra ? `${base}
+
+${extra}` : (base || extra);
+    }
+
+    function refreshObservationTextareas() {
+      const resSelect = document.querySelector('select[data-obs-target="res_bn_obs"]');
+      const feSelect = document.querySelector('select[data-obs-target="fe_tot_obs"]');
+      if (resSelect) setObsWithAverage('res_bn_obs', resSelect.value);
+      if (feSelect) setObsWithAverage('fe_tot_obs', feSelect.value);
+    }
+
+    async function autofillFromRegistration(registerId) {
+      if (!registerId) {
+        currentAutofillAverages = { avg_res_tbn: null, avg_fe_tot: null };
+        refreshObservationTextareas();
+        return;
+      }
+
+      const res = await fetch(`/feedback-report-autofill/${registerId}`);
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || String(res.status));
+
+      const engineerMap = {
+        AJO: 'Andreas Johansen',
+        SBO: 'Sebastian Bøge',
+        WBE: 'William Stabell Benn',
+        TAN: 'Thomas Andersen',
+        TLC: 'Thomas Lunde-Christensen'
+      };
+
+      setInputValue('date', payload.date_of_report);
+      setInputValue('eng_name', engineerMap[payload.created_by] || '');
+      setInputValue('on_sample_date', payload.latest_onboard_sample_date);
+      setInputValue('lab_sample_date', payload.latest_lab_sample_date);
+      setInputValue('avg_load', payload.avg_load);
+      setInputValue('fo_sulph', payload.fuel_sulph);
+      setInputValue('clo_bn', payload.clo_bn);
+      setInputValue('clo_24hrs', payload.avg_clo_24hrs);
+      setInputValue('acc_fac', payload.acc_factor);
+      setInputValue('feed_before', payload.feedrate_before_bob);
+      setInputValue('feed_rep', payload.latest_feedrate);
+
+      const from = formatDateDDMMYY(payload.sample_period_from);
+      const to = formatDateDDMMYY(payload.sample_period_to);
+      setInputValue('sample_per', from && to ? `${from} - ${to}` : '');
+
+      currentAutofillAverages = {
+        avg_res_tbn: payload.avg_res_tbn,
+        avg_fe_tot: payload.avg_fe_tot
+      };
+      refreshObservationTextareas();
     }
 
 document.getElementById('pdfForm').addEventListener('submit', async function(e) {
@@ -412,24 +499,28 @@ document.getElementById('pdfForm').addEventListener('submit', async function(e) 
           sel.appendChild(opt);
         });
 
-        sel.addEventListener('change', () => {
+        sel.addEventListener('change', async () => {
           const o = sel.options[sel.selectedIndex];
           const rid = sel.value || '';
           const hid = document.getElementById('register_id');
           if (hid) hid.value = rid;
 
-          // Optional: auto-fill vessel/imo to match the selected registration
           if (o && o.dataset) {
             const v = o.dataset.vessel || '';
             const imo = o.dataset.imo || '';
             const vesselInput = document.getElementById('vesselInput');
             const imoInput = document.getElementById('imo_no');
-            if (vesselInput && v) vesselInput.value = v;
-            if (imoInput && imo) imoInput.value = imo;
-            // Trigger legacy vessel autofill for the rest of the fields
             if (vesselInput && v) {
+              vesselInput.value = v;
               vesselInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
+            if (imoInput && imo) imoInput.value = imo;
+          }
+
+          try {
+            await autofillFromRegistration(rid);
+          } catch (err) {
+            console.error('Autofill failed', err);
           }
         });
       } catch (err) {
