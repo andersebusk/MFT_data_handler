@@ -126,7 +126,7 @@ def feedback_report_autofill(register_id):
         nums = _flatten_numeric_values(values)
         if not nums:
             return None
-        return round(sum(nums) / len(nums), 2)
+        return int(round(sum(nums) / len(nums)))
 
     def _pick_cols(row, prefixes):
         if not row:

@@ -1211,6 +1211,76 @@ function _toComparableNumber(v) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+function normalizeDecimalString(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v).trim();
+  if (!s) return '';
+  if (/^(N\/A|-)$/i.test(s)) return s;
+  return s.replace(',', '.');
+}
+
+function normalizeFeedbackNumericFields(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+
+  const numericFields = [
+    'me_load',
+    'me_rpm',
+    'avg_me_power',
+    'daily_cyl_oil_cons',
+    'cyl_oil_feed_rate',
+    'acc_factor',
+    'fuel_sulph',
+    'humidity',
+    'tbn_fed',
+    'pc_inlet',
+    'pc_outlet',
+    'amb_temp',
+    'tbn_scraped',
+    'me_lo_desludge',
+    'me_lo_temp',
+    'me_rh'
+  ];
+
+  numericFields.forEach(key => {
+    if (key in obj) obj[key] = normalizeDecimalString(obj[key]);
+  });
+
+  return obj;
+}
+
+function normalizePerCylinderRecord(record) {
+  if (!record || !record.per_cylinder) return record;
+
+  ['fe_mag', 'fe_cor', 'fe_tot', 'res_tbn', 'unit', 'scav_unit'].forEach(group => {
+    if (Array.isArray(record.per_cylinder[group])) {
+      record.per_cylinder[group] = record.per_cylinder[group].map(normalizeDecimalString);
+    }
+  });
+
+  if (record.per_cylinder.rings && typeof record.per_cylinder.rings === 'object') {
+    ['pr1', 'pr2', 'pr3', 'pr4'].forEach(pr => {
+      if (Array.isArray(record.per_cylinder.rings[pr])) {
+        record.per_cylinder.rings[pr] = record.per_cylinder.rings[pr].map(normalizeDecimalString);
+      }
+    });
+  }
+
+  return record;
+}
+
+function normalizeMeSysNumericFields(record) {
+  if (!record || typeof record !== 'object') return record;
+
+  [
+    'visc40', 'visc100', 'base_number', 'topup_volume',
+    'vanadium', 'pq_index', 'pc4', 'pc6', 'pc14'
+  ].forEach(key => {
+    if (key in record) record[key] = normalizeDecimalString(record[key]);
+  });
+
+  return record;
+}
+
 function _toNumberOrNull(v) {
   const s = String(v ?? "").trim();
   if (!s || s.toUpperCase() === "N/A" || s === "-") return null;
@@ -1867,6 +1937,19 @@ function fbNext() {
   const formData = new FormData(e.target);
   const data = Object.fromEntries(formData.entries());
 
+  normalizeFeedbackNumericFields(data);
+  for (let i = 1; i <= (currentCyl || 0); i++) {
+    ['fe_mag','fe_cor','fe_tot','res_tbn','unit_val','scav_unit'].forEach(prefix => {
+      const key = `${prefix}_${i}`;
+      if (key in data) data[key] = normalizeDecimalString(data[key]);
+    });
+
+    ['pr1','pr2','pr3','pr4'].forEach(pr => {
+      const ringKey = `ring_${pr}_${i}`;
+      if (ringKey in data) data[ringKey] = normalizeDecimalString(data[ringKey]);
+    });
+  }
+
   // ✅ Now it exists — safe to assign
   data.submitted_by = initials;
 
@@ -1981,8 +2064,18 @@ function fbNext() {
   // Feedback report: commit currently visible parsed row (if any) before submit
   try { fbCommitCurrent(); fbRebuildFeedbackRows(); } catch(_) {}
 
-  data.feedback_rows = feedback_rows;
-  data.scavenge_rows = scavenge_rows;
+  data.feedback_rows = Array.isArray(feedback_rows)
+    ? feedback_rows.map(r => normalizePerCylinderRecord(normalizeFeedbackNumericFields(JSON.parse(JSON.stringify(r)))))
+    : [];
+  data.scavenge_rows = Array.isArray(scavenge_rows)
+    ? scavenge_rows.map(r => normalizePerCylinderRecord(normalizeFeedbackNumericFields(JSON.parse(JSON.stringify(r)))))
+    : [];
+
+  if (typeof fbState !== 'undefined' && fbState && Array.isArray(fbState.records)) {
+    fbState.records = fbState.records.map(r =>
+      normalizePerCylinderRecord(normalizeFeedbackNumericFields(JSON.parse(JSON.stringify(r))))
+    );
+  }
 
   // ME SYS: ensure the currently visible row is committed before submit
   try {
@@ -2000,7 +2093,9 @@ function fbNext() {
     // If anything goes wrong, fall back to backend single-row mode via top-level fields.
   }
 
-  data.me_sys_rows = (window.me_sys_rows ?? me_sys_rows ?? []);
+  data.me_sys_rows = Array.isArray(window.me_sys_rows ?? me_sys_rows)
+    ? (window.me_sys_rows ?? me_sys_rows).map(r => normalizeMeSysNumericFields(JSON.parse(JSON.stringify(r))))
+    : [];
     const submitBtn = e.target.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = true;
 
